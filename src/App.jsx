@@ -80,7 +80,7 @@ function App() {
       const formData = new FormData()
       formData.append('file', selectedFile)
 
-      const response = await fetch('http://127.0.0.1:8000/api/v1/ocr/upload-pdf-csv', {
+      const response = await fetch('https://sdp-ocr-back.onrender.com/api/v1/ocr/upload-pdf-csv', {
         method: 'POST',
         body: formData
       })
