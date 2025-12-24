@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import EditCustomerModal from '../components/Modals/EditCustomerModal'
 import './ClientsPage.css'
 
 const ClientsPage = () => {
@@ -9,6 +10,9 @@ const ClientsPage = () => {
   const [selectedCity, setSelectedCity] = useState('')
   const [selectedCountry, setSelectedCountry] = useState('')
   const [error, setError] = useState(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState(null)
+  const [selectedClients, setSelectedClients] = useState(new Set())
 
   useEffect(() => {
     if (clients.length === 0) {
@@ -48,7 +52,7 @@ const ClientsPage = () => {
         client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         client.phone?.toLowerCase().includes(searchTerm.toLowerCase())
 
-      const matchesCity = selectedCity === '' || client.city === selectedCity
+      const matchesCity = selectedCity === '' || cleanCityName(client.city) === selectedCity
       const matchesCountry = selectedCountry === '' || client.country === selectedCountry
 
       return matchesSearch && matchesCity && matchesCountry
@@ -57,9 +61,18 @@ const ClientsPage = () => {
     setFilteredClients(filtered)
   }, [clients, searchTerm, selectedCity, selectedCountry])
 
+  // Nettoyer le nom de ville
+  const cleanCityName = (city) => {
+    if (!city) return ''
+    return city
+      .toLowerCase()
+      .replace(/[^a-zA-ZÀ-ÿ\s-]/g, '') // Supprimer tout sauf lettres, espaces et tirets
+      .trim()
+  }
+
   // Obtenir les villes uniques
   const getUniqueCities = () => {
-    const cities = clients.map(client => client.city).filter(Boolean)
+    const cities = clients.map(client => cleanCityName(client.city)).filter(Boolean)
     return [...new Set(cities)].sort()
   }
 
@@ -80,14 +93,75 @@ const ClientsPage = () => {
     // À implémenter plus tard
   }
 
-  const handleEditList = () => {
-    console.log('Modifier la liste')
-    // À implémenter plus tard
+  const handleViewClient = (client) => {
+    setSelectedCustomer(client)
+    setShowEditModal(true)
   }
 
-  const handleViewClient = (client) => {
-    console.log('Voir client:', client)
-    // À implémenter plus tard
+  const handleCustomerUpdated = (updatedCustomer) => {
+    // Mettre à jour la liste des clients
+    setClients(prev => prev.map(client =>
+      client.id === updatedCustomer.id ? updatedCustomer : client
+    ))
+    fetchClients() // Recharger pour être sûr d'avoir les dernières données
+  }
+
+  // Gestion de la sélection des clients
+  const handleClientSelect = (clientId) => {
+    setSelectedClients(prev => {
+      const newSelected = new Set(prev)
+      if (newSelected.has(clientId)) {
+        newSelected.delete(clientId)
+      } else {
+        newSelected.add(clientId)
+      }
+      return newSelected
+    })
+  }
+
+  const handleSelectAll = () => {
+    if (selectedClients.size === filteredClients.length) {
+      // Tout désélectionner
+      setSelectedClients(new Set())
+    } else {
+      // Tout sélectionner
+      setSelectedClients(new Set(filteredClients.map(client => client.id)))
+    }
+  }
+
+  const isAllSelected = filteredClients.length > 0 && selectedClients.size === filteredClients.length
+  const isSomeSelected = selectedClients.size > 0 && selectedClients.size < filteredClients.length
+
+  // Export CSV
+  const downloadCSV = () => {
+    const selectedClientsData = clients.filter(client => selectedClients.has(client.id))
+
+    if (selectedClientsData.length === 0) return
+
+    const headers = ['Référence', 'Nom', 'Prénom', 'Email', 'Téléphone', 'Métier', 'Ville', 'Pays']
+    const csvContent = [
+      headers.join(','),
+      ...selectedClientsData.map(client => [
+        `"${client.reference || ''}"`,
+        `"${client.last_name || ''}"`,
+        `"${client.first_name || ''}"`,
+        `"${client.email || ''}"`,
+        `"${client.phone || ''}"`,
+        `"${client.job || ''}"`,
+        `"${client.city || ''}"`,
+        `"${client.country || ''}"`
+      ].join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `clients_${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   return (
@@ -101,11 +175,13 @@ const ClientsPage = () => {
           </p>
         </div>
         <div className="header-actions">
+          {selectedClients.size > 0 && (
+            <button className="download-csv-btn" onClick={downloadCSV}>
+              📥 Télécharger en CSV ({selectedClients.size})
+            </button>
+          )}
           <button className="add-client-btn" onClick={handleAddClient}>
-            ➕ Ajouter un client
-          </button>
-          <button className="edit-list-btn" onClick={handleEditList}>
-            ✏️ Modifier la liste
+            ➕
           </button>
           <button className="refresh-btn" onClick={fetchClients}>
             🔄 Actualiser
@@ -176,6 +252,17 @@ const ClientsPage = () => {
           <table className="clients-table">
             <thead>
               <tr>
+                <th className="checkbox-column">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    ref={input => {
+                      if (input) input.indeterminate = isSomeSelected
+                    }}
+                    onChange={handleSelectAll}
+                    title={isAllSelected ? "Tout désélectionner" : "Tout sélectionner"}
+                  />
+                </th>
                 <th>Référence</th>
                 <th>Nom</th>
                 <th>Prénom</th>
@@ -189,7 +276,14 @@ const ClientsPage = () => {
             </thead>
             <tbody>
               {filteredClients.map((client) => (
-                <tr key={client.id}>
+                <tr key={client.id} className={selectedClients.has(client.id) ? 'selected-row' : ''}>
+                  <td className="checkbox-column">
+                    <input
+                      type="checkbox"
+                      checked={selectedClients.has(client.id)}
+                      onChange={() => handleClientSelect(client.id)}
+                    />
+                  </td>
                   <td>{client.reference}</td>
                   <td>{client.first_name}</td>
                   <td>{client.last_name}</td>
@@ -222,6 +316,13 @@ const ClientsPage = () => {
           )}
         </div>
       )}
+
+      <EditCustomerModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onCustomerUpdated={handleCustomerUpdated}
+        customer={selectedCustomer}
+      />
     </div>
   )
 }

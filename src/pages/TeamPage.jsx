@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { formatLastLogin } from '../utils/timeUtils'
+import AddUserModal from '../components/Modals/AddUserModal'
 import './TeamPage.css'
 
 const TeamPage = () => {
@@ -11,6 +12,7 @@ const TeamPage = () => {
   const [selectedTeam, setSelectedTeam] = useState('')
   const [showOnlineOnly, setShowOnlineOnly] = useState(false)
   const [lastUpdate, setLastUpdate] = useState(Date.now())
+  const [showAddModal, setShowAddModal] = useState(false)
 
   useEffect(() => {
     fetchTeamMembers()
@@ -76,7 +78,12 @@ const TeamPage = () => {
   }
 
   const handleAddMember = () => {
-    console.log('Ajouter un membre - fonctionnalité à implémenter')
+    setShowAddModal(true)
+  }
+
+  const handleUserAdded = (newUser) => {
+    // Actualiser la liste des membres après ajout
+    fetchTeamMembers()
   }
 
 
@@ -119,7 +126,7 @@ const TeamPage = () => {
         </div>
         <div className="header-actions">
           <button className="add-member-btn" onClick={handleAddMember}>
-            ➕ Ajouter un membre
+            ➕
           </button>
           <button className="refresh-btn" onClick={fetchTeamMembers}>
             🔄 Actualiser
@@ -267,6 +274,12 @@ const TeamPage = () => {
           )}
         </div>
       )}
+
+      <AddUserModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onUserAdded={handleUserAdded}
+      />
     </div>
   )
 }

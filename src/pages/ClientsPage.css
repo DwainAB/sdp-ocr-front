@@ -35,7 +35,8 @@
 
 .refresh-btn,
 .add-client-btn,
-.edit-list-btn {
+.edit-list-btn,
+.download-csv-btn {
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
@@ -75,6 +76,16 @@
 
 .edit-list-btn:hover {
   background: #d97706;
+  transform: translateY(-1px);
+}
+
+.download-csv-btn {
+  background: #059669;
+  color: white;
+}
+
+.download-csv-btn:hover {
+  background: #047857;
   transform: translateY(-1px);
 }
 
@@ -328,4 +339,30 @@
     padding: 0.75rem 0.5rem;
     font-size: 0.75rem;
   }
+}
+
+/* Styles pour les checkboxes et sélection */
+.checkbox-column {
+  width: 40px;
+  text-align: center;
+}
+
+.checkbox-column input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #3b82f6;
+}
+
+.selected-row {
+  background-color: #eff6ff;
+}
+
+.selected-row:hover {
+  background-color: #dbeafe !important;
+}
+
+/* Animation pour la sélection */
+.clients-table tbody tr {
+  transition: background-color 0.2s ease;
 }
