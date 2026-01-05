@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import './EditCustomerModal.css'
 
+const API_URL = import.meta.env.VITE_API_URL
+
 const EditCustomerModal = ({ isOpen, onClose, onCustomerUpdated, customer }) => {
   const [formData, setFormData] = useState({
     first_name: '',
@@ -14,6 +16,7 @@ const EditCustomerModal = ({ isOpen, onClose, onCustomerUpdated, customer }) => 
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isEditing, setIsEditing] = useState(false)
 
   useEffect(() => {
     if (customer && isOpen) {
@@ -27,6 +30,8 @@ const EditCustomerModal = ({ isOpen, onClose, onCustomerUpdated, customer }) => 
         country: customer.country || '',
         reference: customer.reference || ''
       })
+      setIsEditing(false)
+      setError('')
     }
   }, [customer, isOpen])
 
@@ -46,7 +51,7 @@ const EditCustomerModal = ({ isOpen, onClose, onCustomerUpdated, customer }) => 
     setError('')
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/v1/customers/${customer.id}`, {
+      const response = await fetch(`${API_URL}/api/v1/customers/${customer.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -63,7 +68,7 @@ const EditCustomerModal = ({ isOpen, onClose, onCustomerUpdated, customer }) => 
       console.log('Client mis à jour:', updatedCustomer)
 
       onCustomerUpdated(updatedCustomer)
-      onClose()
+      setIsEditing(false)
     } catch (error) {
       console.error('Erreur:', error)
       setError(error.message)
@@ -75,8 +80,21 @@ const EditCustomerModal = ({ isOpen, onClose, onCustomerUpdated, customer }) => 
   const handleClose = () => {
     if (!isLoading) {
       setError('')
+      setIsEditing(false)
       onClose()
     }
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A'
+    const date = new Date(dateString)
+    return date.toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 
   if (!isOpen) return null
@@ -85,14 +103,28 @@ const EditCustomerModal = ({ isOpen, onClose, onCustomerUpdated, customer }) => 
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Modifier le client</h2>
-          <button
-            className="modal-close-btn"
-            onClick={handleClose}
-            disabled={isLoading}
-          >
-            ✕
-          </button>
+          <div className="modal-title-section">
+            <h2>{isEditing ? 'Modifier le client' : 'Informations du client'}</h2>
+            <div className="client-id">ID: {customer?.id}</div>
+          </div>
+          <div className="header-actions">
+            {!isEditing && (
+              <button
+                className="edit-btn"
+                onClick={() => setIsEditing(true)}
+                disabled={isLoading}
+              >
+                ✏️ Modifier
+              </button>
+            )}
+            <button
+              className="modal-close-btn"
+              onClick={handleClose}
+              disabled={isLoading}
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="customer-form">

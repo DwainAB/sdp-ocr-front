@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react'
 import { formatLastLogin } from '../utils/timeUtils'
 import AddUserModal from '../components/Modals/AddUserModal'
+import UserLoginHistoryModal from '../components/Modals/UserLoginHistoryModal'
+import UserDetailsModal from '../components/Modals/UserDetailsModal'
 import './TeamPage.css'
+
+const API_URL = import.meta.env.VITE_API_URL
 
 const TeamPage = () => {
   const [teamMembers, setTeamMembers] = useState([])
@@ -13,6 +17,10 @@ const TeamPage = () => {
   const [showOnlineOnly, setShowOnlineOnly] = useState(false)
   const [lastUpdate, setLastUpdate] = useState(Date.now())
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showLoginHistoryModal, setShowLoginHistoryModal] = useState(false)
+  const [selectedUserForHistory, setSelectedUserForHistory] = useState(null)
+  const [showUserDetailsModal, setShowUserDetailsModal] = useState(false)
+  const [selectedUser, setSelectedUser] = useState(null)
 
   useEffect(() => {
     fetchTeamMembers()
@@ -22,14 +30,14 @@ const TeamPage = () => {
     setIsLoading(true)
     setError(null)
     try {
-      let url = 'http://0.0.0.0:8000/api/v1/users'
+      let url = `${API_URL}/api/v1/users`
 
       if (showOnlineOnly) {
-        url = 'http://0.0.0.0:8000/api/v1/users/online'
+        url = `${API_URL}/api/v1/users/online`
       } else if (selectedTeam) {
-        url = `http://0.0.0.0:8000/api/v1/users/team/${selectedTeam}`
+        url = `${API_URL}/api/v1/users/team/${selectedTeam}`
       } else if (selectedRole) {
-        url = `http://0.0.0.0:8000/api/v1/users/role/${selectedRole}`
+        url = `${API_URL}/api/v1/users/role/${selectedRole}`
       }
 
       const response = await fetch(url)
@@ -83,6 +91,25 @@ const TeamPage = () => {
 
   const handleUserAdded = (newUser) => {
     // Actualiser la liste des membres après ajout
+    fetchTeamMembers()
+  }
+
+  const handleViewLogs = (user) => {
+    setSelectedUserForHistory(user)
+    setShowLoginHistoryModal(true)
+  }
+
+  const handleViewUser = (user) => {
+    setSelectedUser(user)
+    setShowUserDetailsModal(true)
+  }
+
+  const handleUserUpdated = (updatedUser) => {
+    // Mettre à jour la liste des utilisateurs
+    setTeamMembers(prev => prev.map(user =>
+      user.id === updatedUser.id ? { ...user, ...updatedUser } : user
+    ))
+    // Optionnel: recharger pour être sûr d'avoir les dernières données
     fetchTeamMembers()
   }
 
@@ -204,7 +231,11 @@ const TeamPage = () => {
       ) : (
         <div className="team-grid">
           {filteredMembers.map((member) => (
-            <div key={member.id} className="member-card">
+            <div
+              key={member.id}
+              className="member-card clickable-card"
+              onClick={() => handleViewUser(member)}
+            >
               <div className="member-header">
                 <div className="member-avatar">
                   {member.avatar ? (
@@ -253,7 +284,10 @@ const TeamPage = () => {
               <div className="member-actions">
                 <button
                   className="email-member-btn"
-                  onClick={() => window.open(`mailto:${member.email}`, '_blank')}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    window.open(`mailto:${member.email}`, '_blank')
+                  }}
                 >
                   📧 Mail
                 </button>
@@ -279,6 +313,20 @@ const TeamPage = () => {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onUserAdded={handleUserAdded}
+      />
+
+      <UserLoginHistoryModal
+        isOpen={showLoginHistoryModal}
+        onClose={() => setShowLoginHistoryModal(false)}
+        user={selectedUserForHistory}
+      />
+
+      <UserDetailsModal
+        isOpen={showUserDetailsModal}
+        onClose={() => setShowUserDetailsModal(false)}
+        onUserUpdated={handleUserUpdated}
+        user={selectedUser}
+        onViewLogs={handleViewLogs}
       />
     </div>
   )

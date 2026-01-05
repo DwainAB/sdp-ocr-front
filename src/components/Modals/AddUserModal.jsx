@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import './AddUserModal.css'
 
+const API_URL = import.meta.env.VITE_API_URL
+
 const AddUserModal = ({ isOpen, onClose, onUserAdded }) => {
   const [formData, setFormData] = useState({
     first_name: '',
@@ -28,7 +30,7 @@ const AddUserModal = ({ isOpen, onClose, onUserAdded }) => {
     setError('')
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/v1/users', {
+      const response = await fetch(`${API_URL}/api/v1/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

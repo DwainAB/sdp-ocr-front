@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react'
 import './ExtractionPage.css'
 
+const API_URL = import.meta.env.VITE_API_URL
+
 const ExtractionPage = () => {
   const [selectedFile, setSelectedFile] = useState(null)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -73,7 +75,7 @@ const ExtractionPage = () => {
       const formData = new FormData()
       formData.append('file', selectedFile)
 
-      const response = await fetch('http://0.0.0.0:8000/api/v1/ocr/upload-pdf-csv', {
+      const response = await fetch(`${API_URL}/api/v1/ocr/upload-pdf-csv`, {
         method: 'POST',
         body: formData
       })

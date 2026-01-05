@@ -180,6 +180,14 @@
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
+.clickable-card {
+  cursor: pointer;
+}
+
+.clickable-card:hover {
+  background-color: #f8fafc;
+}
+
 .member-header {
   display: flex;
   align-items: center;
@@ -344,6 +352,26 @@
 
 .email-member-btn:hover {
   background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.log-member-btn {
+  background: #059669;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.log-member-btn:hover {
+  background: #047857;
   transform: translateY(-1px);
 }
 

@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 
+const API_URL = import.meta.env.VITE_API_URL
+
 const AuthContext = createContext(null)
 
 export const useAuth = () => {
@@ -21,33 +23,13 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true)
     }
 
-    // Déconnexion automatique à la fermeture de l'onglet
-    const handleBeforeUnload = () => {
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-      if (currentUser?.id) {
-        console.log(`Beacon déconnexion pour user ID: ${currentUser.id}`)
-        // Signal synchrone pour la fermeture
-        const blob = new Blob([JSON.stringify({ is_online: false })], {
-          type: 'application/json'
-        })
-        navigator.sendBeacon(
-          `http://0.0.0.0:8000/api/v1/users/${currentUser.id}/login-status`,
-          blob
-        )
-      }
-    }
-
-    window.addEventListener('beforeunload', handleBeforeUnload)
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload)
-    }
+    // Pas de détection automatique - déconnexion uniquement manuelle
   }, [])
 
   const getUserFromDatabase = async (email) => {
     try {
       const res = await fetch(
-          `http://0.0.0.0:8000/api/v1/users?email=${email}`
+          `${API_URL}/api/v1/users?email=${email}`
       )
       if (!res.ok) return null
       const data = await res.json()
@@ -64,7 +46,7 @@ export const AuthProvider = ({ children }) => {
   const signalUserConnection = async (userId) => {
     try {
       console.log(`Signaler connexion pour user ID: ${userId}`)
-      const response = await fetch(`http://127.0.0.1:8000/api/v1/users/${userId}/login-status`, {
+      const response = await fetch(`${API_URL}/api/v1/users/${userId}/login-status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -80,6 +62,50 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Erreur lors du signal de connexion:', error)
+    }
+  }
+
+  const recordLogin = async (userId) => {
+    try {
+      console.log(`Enregistrer historique de connexion pour user ID: ${userId}`)
+      const response = await fetch(`${API_URL}/api/v1/login-history/record`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          type: "connexion"
+        })
+      })
+      if (!response.ok) {
+        const error = await response.text()
+        console.error('Erreur lors de l\'enregistrement de l\'historique:', error)
+      } else {
+        console.log('Historique de connexion enregistré avec succès')
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'enregistrement de l\'historique de connexion:', error)
+    }
+  }
+
+  const recordLogout = async (userId) => {
+    try {
+      console.log(`Enregistrer déconnexion pour user ID: ${userId}`)
+      const response = await fetch(`${API_URL}/api/v1/login-history/record`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          type: "deconnexion"
+        })
+      })
+      if (!response.ok) {
+        const error = await response.text()
+        console.error('Erreur lors de l\'enregistrement de la déconnexion:', error)
+      } else {
+        console.log('Déconnexion enregistrée avec succès')
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'enregistrement de la déconnexion:', error)
     }
   }
 
@@ -113,12 +139,14 @@ export const AuthProvider = ({ children }) => {
       // 3. Signaler la connexion de l'utilisateur
       await signalUserConnection(dbUser.id)
 
-      // 4. Combiner les données Google et de la base
+      // 4. Enregistrer dans l'historique de connexion
+      await recordLogin(dbUser.id)
+
+      // 5. Combiner les données Google et de la base
       const userData = {
         id: dbUser.id,
         email: dbUser.email,
         name: googleUser.name,
-        picture: googleUser.picture,
         first_name: dbUser.first_name,
         last_name: dbUser.last_name,
         role: dbUser.role,
@@ -142,7 +170,7 @@ export const AuthProvider = ({ children }) => {
   const signalUserDisconnection = async (userId) => {
     try {
       console.log(`Signaler déconnexion pour user ID: ${userId}`)
-      const response = await fetch(`http://0.0.0.0:8000/api/v1/users/${userId}/login-status`, {
+      const response = await fetch(`${API_URL}/api/v1/users/${userId}/login-status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -163,6 +191,10 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     if (user?.id) {
+      // 1. Enregistrer la déconnexion dans l'historique
+      await recordLogout(user.id)
+
+      // 2. Signaler la déconnexion (statut hors ligne)
       await signalUserDisconnection(user.id)
     }
 
