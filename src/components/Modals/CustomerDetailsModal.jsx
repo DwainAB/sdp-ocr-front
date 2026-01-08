@@ -17,6 +17,9 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [isEditing, setIsEditing] = useState(false)
+  const [customerFiles, setCustomerFiles] = useState([])
+  const [filesLoading, setFilesLoading] = useState(false)
+  const [lightboxImage, setLightboxImage] = useState(null)
 
   useEffect(() => {
     if (customer && isOpen) {
@@ -32,8 +35,34 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
       })
       setIsEditing(false)
       setError('')
+
+      // Charger les fichiers du client
+      fetchCustomerFiles(customer.id)
     }
   }, [customer, isOpen])
+
+  const fetchCustomerFiles = async (customerId) => {
+    if (!customerId) return
+
+    setFilesLoading(true)
+    try {
+      const response = await fetch(`${API_URL}/api/v1/customers/${customerId}/files`)
+      if (!response.ok) {
+        throw new Error('Erreur lors de la récupération des fichiers')
+      }
+
+      const data = await response.json()
+
+      // Filtrer uniquement les images PNG
+      const imageFiles = data.files.filter(file => file.file_type === 'image/png')
+      setCustomerFiles(imageFiles)
+    } catch (error) {
+      console.error('Erreur lors du chargement des fichiers:', error)
+      setCustomerFiles([])
+    } finally {
+      setFilesLoading(false)
+    }
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -106,8 +135,17 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
     if (!isLoading) {
       setError('')
       setIsEditing(false)
+      setLightboxImage(null)
       onClose()
     }
+  }
+
+  const openLightbox = (file) => {
+    setLightboxImage(file)
+  }
+
+  const closeLightbox = () => {
+    setLightboxImage(null)
   }
 
   const handleCancelEdit = () => {
@@ -135,7 +173,38 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
         <div className="modal-header">
           <div className="modal-title-section">
             <h2>{isEditing ? 'Modifier le client' : 'Détails du client'}</h2>
-            <div className="client-id">ID: {customer?.id}</div>
+            <div className="verification-badges">
+              {customer?.verified_email && (
+                <span className="verification-badge verified" title="Email vérifié">
+                  ✓ Email vérifié
+                </span>
+              )}
+              {customer?.verified_email === false && (
+                <span className="verification-badge unverified" title="Email non vérifié">
+                  ✗ Email non vérifié
+                </span>
+              )}
+              {customer?.verified_phone && (
+                <span className="verification-badge verified" title="Téléphone vérifié">
+                  ✓ Téléphone vérifié
+                </span>
+              )}
+              {customer?.verified_phone === false && (
+                <span className="verification-badge unverified" title="Téléphone non vérifié">
+                  ✗ Téléphone non vérifié
+                </span>
+              )}
+              {customer?.verified_domain && (
+                <span className="verification-badge verified" title="Domaine vérifié">
+                  ✓ Domaine vérifié
+                </span>
+              )}
+              {customer?.verified_domain === false && (
+                <span className="verification-badge unverified" title="Domaine non vérifié">
+                  ✗ Domaine non vérifié
+                </span>
+              )}
+            </div>
           </div>
           <div className="header-actions">
             {!isEditing && (
@@ -182,21 +251,13 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
                     <label>Email</label>
                     <div className="email-info">
                       <span>{customer?.email || 'Non renseigné'}</span>
-                      {customer?.verified_email === true && (
-                        <span className="verified-icon" title="Email vérifié">
-                          ✓
-                        </span>
-                      )}
-                      {customer?.verified_email === false && (
-                        <span className="unverified-icon" title="Email non vérifié">
-                          ⚠️
-                        </span>
-                      )}
                     </div>
                   </div>
                   <div className="info-item">
                     <label>Téléphone</label>
-                    <span>{customer?.phone || 'Non renseigné'}</span>
+                    <div className="email-info">
+                      <span>{customer?.phone || 'Non renseigné'}</span>
+                    </div>
                   </div>
                   <div className="info-item">
                     <label>Métier</label>
@@ -221,6 +282,41 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
                     <span>{customer?.country || 'Non renseigné'}</span>
                   </div>
                 </div>
+              </div>
+
+              {/* Section des fichiers */}
+              <div className="info-section files-section">
+                <h3>Documents & Images ({customerFiles.length})</h3>
+                {filesLoading ? (
+                  <div className="files-loading">
+                    <span className="spinner"></span>
+                    <span>Chargement des fichiers...</span>
+                  </div>
+                ) : customerFiles.length > 0 ? (
+                  <div className="files-grid">
+                    {customerFiles.map(file => (
+                      <div key={file.id} className="file-item">
+                        <img
+                          src={`${API_URL}/api/v1/files/${file.id}/content`}
+                          alt={file.file_name}
+                          className="file-thumbnail"
+                          loading="lazy"
+                          onClick={() => openLightbox(file)}
+                        />
+                        <div className="file-info">
+                          <p className="file-name" title={file.file_name}>
+                            {file.file_name}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="no-files">
+                    <span className="no-files-icon">📄</span>
+                    <p>Aucun fichier disponible pour ce client</p>
+                  </div>
+                )}
               </div>
 
             </div>
@@ -370,6 +466,32 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
           )}
         </div>
       </div>
+
+      {/* Lightbox pour afficher l'image en grand */}
+      {lightboxImage && (
+        <div className="lightbox-overlay" onClick={closeLightbox}>
+          <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+            <button className="lightbox-close" onClick={closeLightbox}>
+              ✕
+            </button>
+            <img
+              src={`${API_URL}/api/v1/files/${lightboxImage.id}/content`}
+              alt={lightboxImage.file_name}
+              className="lightbox-image"
+            />
+            <div className="lightbox-info">
+              <p>{lightboxImage.file_name}</p>
+              <a
+                href={`${API_URL}/api/v1/files/${lightboxImage.id}/download`}
+                download
+                className="lightbox-download-btn"
+              >
+                ⬇️ Télécharger
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

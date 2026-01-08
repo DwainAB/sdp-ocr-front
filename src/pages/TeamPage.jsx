@@ -152,11 +152,13 @@ const TeamPage = () => {
           <p>Gestion des membres de l'équipe ({filteredMembers.length} membre{filteredMembers.length !== 1 ? 's' : ''} sur {teamMembers.length})</p>
         </div>
         <div className="header-actions">
-          <button className="add-member-btn" onClick={handleAddMember}>
-            ➕
+          <button className="action-btn add-btn" onClick={handleAddMember}>
+            <span className="btn-icon">+</span>
+            <span className="btn-tooltip">Ajouter un membre</span>
           </button>
-          <button className="refresh-btn" onClick={fetchTeamMembers}>
-            🔄 Actualiser
+          <button className="action-btn refresh-btn" onClick={fetchTeamMembers}>
+            <span className="btn-icon">↻</span>
+            <span className="btn-tooltip">Actualiser</span>
           </button>
         </div>
       </div>

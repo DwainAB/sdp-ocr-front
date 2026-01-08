@@ -27,11 +27,13 @@ const ClientsPage = () => {
   const [isExporting, setIsExporting] = useState(false)
   const [showAddToGroupModal, setShowAddToGroupModal] = useState(false)
   const [showReviewsView, setShowReviewsView] = useState(false)
+  const [pendingReviewsCount, setPendingReviewsCount] = useState(0)
 
   useEffect(() => {
     if (clients.length === 0) {
       fetchClients()
     }
+    fetchPendingReviewsCount()
   }, [])
 
   const fetchClients = async (page = currentPage) => {
@@ -65,6 +67,20 @@ const ClientsPage = () => {
       setTotalClients(0)
     } finally {
       setIsLoadingClients(false)
+    }
+  }
+
+  const fetchPendingReviewsCount = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/customer-reviews/?page=1&size=1`)
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`)
+      }
+      const data = await response.json()
+      setPendingReviewsCount(data.total || 0)
+    } catch (error) {
+      console.error('Erreur lors du chargement du nombre de clients en attente:', error)
+      setPendingReviewsCount(0)
     }
   }
 
@@ -366,15 +382,20 @@ const ClientsPage = () => {
             </div>
           )}
           <div className="primary-actions">
-            <button className="action-btn warning-btn" onClick={handleWarningClick}>
-              <span className="btn-icon">!</span>
-              <span className="btn-tooltip">Clients en attente</span>
-            </button>
+            {pendingReviewsCount > 0 && (
+              <button className="action-btn warning-btn" onClick={handleWarningClick}>
+                <span className="btn-icon">!</span>
+                <span className="btn-tooltip">Clients en attente ({pendingReviewsCount})</span>
+              </button>
+            )}
             <button className="action-btn add-btn" onClick={handleAddClient}>
               <span className="btn-icon">+</span>
               <span className="btn-tooltip">Ajouter un client</span>
             </button>
-            <button className="action-btn refresh-btn" onClick={fetchClients}>
+            <button className="action-btn refresh-btn" onClick={() => {
+              fetchClients()
+              fetchPendingReviewsCount()
+            }}>
               <span className="btn-icon">↻</span>
               <span className="btn-tooltip">Actualiser</span>
             </button>
@@ -504,7 +525,16 @@ const ClientsPage = () => {
                       )}
                     </div>
                   </td>
-                  <td>{client.phone}</td>
+                  <td>
+                    <div className="email-cell">
+                      <span className="email-address">{client.phone}</span>
+                      {client.verified_phone === true && (
+                        <span className="verified-badge" title="Téléphone vérifié">
+                          ✓
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td>{client.job}</td>
                   <td>{client.city}</td>
                   <td>{client.country}</td>

@@ -173,11 +173,13 @@ const GroupsPage = () => {
           </p>
         </div>
         <div className="header-actions">
-          <button className="add-group-btn" onClick={handleAddGroup}>
-            ➕ Ajouter un groupe
+          <button className="action-btn add-btn" onClick={handleAddGroup}>
+            <span className="btn-icon">+</span>
+            <span className="btn-tooltip">Ajouter un groupe</span>
           </button>
-          <button className="refresh-btn" onClick={fetchGroups}>
-            🔄 Actualiser
+          <button className="action-btn refresh-btn" onClick={fetchGroups}>
+            <span className="btn-icon">↻</span>
+            <span className="btn-tooltip">Actualiser</span>
           </button>
         </div>
       </div>

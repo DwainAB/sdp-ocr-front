@@ -1,14 +1,21 @@
 import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import ConfirmationModal from '../Modals/ConfirmationModal'
 import './Dashboard.css'
 
 const Dashboard = ({ children, activeSection, onSectionChange }) => {
   const { user, logout } = useAuth()
   const [showClientsSubmenu, setShowClientsSubmenu] = useState(false)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const handleLogout = async () => {
-    if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+    setIsLoggingOut(true)
+    try {
       await logout()
+    } finally {
+      setIsLoggingOut(false)
+      setShowLogoutModal(false)
     }
   }
 
@@ -103,7 +110,7 @@ const Dashboard = ({ children, activeSection, onSectionChange }) => {
               <p className="user-email">{user?.email || ''}</p>
             </div>
           </div>
-          <button className="logout-btn" onClick={handleLogout}>
+          <button className="logout-btn" onClick={() => setShowLogoutModal(true)}>
             🚪 Déconnexion
           </button>
         </div>
@@ -113,6 +120,18 @@ const Dashboard = ({ children, activeSection, onSectionChange }) => {
       <div className="main-content">
         {children}
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleLogout}
+        title="Déconnexion"
+        message="Êtes-vous sûr de vouloir vous déconnecter ?"
+        confirmText="Se déconnecter"
+        cancelText="Annuler"
+        isLoading={isLoggingOut}
+      />
     </div>
   )
 }
