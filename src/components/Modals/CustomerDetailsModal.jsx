@@ -12,7 +12,8 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
     job: '',
     city: '',
     country: '',
-    reference: ''
+    reference: '',
+    date: ''
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -31,7 +32,8 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
         job: customer.job || '',
         city: customer.city || '',
         country: customer.country || '',
-        reference: customer.reference || ''
+        reference: customer.reference || '',
+        date: customer.date || ''
       })
       setIsEditing(false)
       setError('')
@@ -64,8 +66,71 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
     }
   }
 
+  const formatDateDisplay = (dateString) => {
+    if (!dateString) return 'Non renseigné'
+
+    // Si déjà au format JJ/MM/AAAA, retourner tel quel
+    const ddmmyyyyRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/
+    if (ddmmyyyyRegex.test(dateString)) {
+      return dateString
+    }
+
+    // Essayer de parser d'autres formats et convertir en JJ/MM/AAAA
+    try {
+      const date = new Date(dateString)
+      if (!isNaN(date.getTime())) {
+        const day = String(date.getDate()).padStart(2, '0')
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const year = date.getFullYear()
+        return `${day}/${month}/${year}`
+      }
+    } catch {
+      // Si la conversion échoue, retourner la valeur originale
+      return dateString
+    }
+
+    return dateString
+  }
+
+  const validateDateFormat = (dateString) => {
+    if (!dateString) return true // Vide est accepté
+    const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/
+    const match = dateString.match(dateRegex)
+
+    if (!match) return false
+
+    const day = parseInt(match[1], 10)
+    const month = parseInt(match[2], 10)
+    const year = parseInt(match[3], 10)
+
+    // Vérifier que le mois est valide (01-12)
+    if (month < 1 || month > 12) return false
+
+    // Vérifier que le jour est valide (01-31)
+    if (day < 1 || day > 31) return false
+
+    // Vérifier les jours selon le mois
+    const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+
+    // Année bissextile
+    if (month === 2 && ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0)) {
+      return day <= 29
+    }
+
+    return day <= daysInMonth[month - 1]
+  }
+
   const handleChange = (e) => {
     const { name, value } = e.target
+
+    // Si c'est le champ date, valider le format
+    if (name === 'date' && value) {
+      // Réinitialiser l'erreur de date si le champ est vidé
+      if (!value) {
+        setError('')
+      }
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -75,6 +140,12 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!customer?.id) return
+
+    // Valider le format de la date avant de soumettre
+    if (formData.date && !validateDateFormat(formData.date)) {
+      setError('Le format de la date doit être JJ/MM/AAAA (ex: 15/03/2024)')
+      return
+    }
 
     setIsLoading(true)
     setError('')
@@ -89,7 +160,8 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
         job: customer.job || '',
         city: customer.city || '',
         country: customer.country || '',
-        reference: customer.reference || ''
+        reference: customer.reference || '',
+        date: customer.date || ''
       }
 
       const changedFields = {}
@@ -160,7 +232,8 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
       job: customer?.job || '',
       city: customer?.city || '',
       country: customer?.country || '',
-      reference: customer?.reference || ''
+      reference: customer?.reference || '',
+      date: customer?.date || ''
     })
   }
 
@@ -266,6 +339,10 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
                   <div className="info-item">
                     <label>Référence</label>
                     <span>{customer?.reference || 'Non renseigné'}</span>
+                  </div>
+                  <div className="info-item">
+                    <label>Date</label>
+                    <span>{formatDateDisplay(customer?.date)}</span>
                   </div>
                 </div>
               </div>
@@ -434,6 +511,19 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
                   onChange={handleChange}
                   disabled={isLoading}
                   placeholder="Ex: REF-2024-001"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="date">Date</label>
+                <input
+                  type="text"
+                  id="date"
+                  name="date"
+                  value={formData.date}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                  placeholder="Ex: 15/03/2024"
                 />
               </div>
 

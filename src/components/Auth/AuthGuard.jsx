@@ -1,5 +1,5 @@
 import { useAuth } from '../../contexts/AuthContext'
-import LoginPage from '../../pages/LoginPage'
+import LoginPage from '../../pages/LoginPage/LoginPage'
 
 const AuthGuard = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth()

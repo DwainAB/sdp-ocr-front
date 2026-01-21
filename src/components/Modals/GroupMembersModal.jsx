@@ -12,7 +12,9 @@ const GroupMembersModal = ({ isOpen, onClose, group }) => {
   const [filteredMembers, setFilteredMembers] = useState([])
   const [selectedMembers, setSelectedMembers] = useState(new Set())
   const [showExportModal, setShowExportModal] = useState(false)
+  const [showRemoveModal, setShowRemoveModal] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [isRemoving, setIsRemoving] = useState(false)
 
   // Filtrage des membres
   useEffect(() => {
@@ -111,6 +113,49 @@ const GroupMembersModal = ({ isOpen, onClose, group }) => {
   const handleExportClick = () => {
     if (selectedMembers.size === 0) return
     setShowExportModal(true)
+  }
+
+  const handleRemoveClick = () => {
+    if (selectedMembers.size === 0) return
+    setShowRemoveModal(true)
+  }
+
+  const handleSendEmail = () => {
+    if (selectedMembers.size === 0) return
+    // Pour l'instant, ne fait rien (à implémenter plus tard)
+    console.log('Envoi d\'email à', selectedMembers.size, 'membres')
+  }
+
+  const removeMembersFromGroup = async () => {
+    if (!group?.id || selectedMembers.size === 0) return
+
+    setIsRemoving(true)
+    try {
+      // Utiliser la route DELETE /{group_id}/customers avec les IDs des clients à retirer
+      const customerIds = Array.from(selectedMembers)
+
+      const response = await fetch(`${API_URL}/api/v1/groups/${group.id}/customers`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ customer_ids: customerIds })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`)
+      }
+
+      // Retirer les membres de la liste locale
+      setMembers(prev => prev.filter(member => !selectedMembers.has(member.id)))
+      setSelectedMembers(new Set())
+      setShowRemoveModal(false)
+    } catch (error) {
+      console.error('Erreur lors du retrait des membres:', error)
+      setError('Erreur lors du retrait des membres du groupe')
+    } finally {
+      setIsRemoving(false)
+    }
   }
 
   const exportMembersCSV = async () => {
@@ -216,6 +261,18 @@ const GroupMembersModal = ({ isOpen, onClose, group }) => {
 
               {selectedMembers.size > 0 && (
                 <div className="selection-actions">
+                  <button
+                    className="send-email-btn"
+                    onClick={handleSendEmail}
+                  >
+                    📧 Envoyer email ({selectedMembers.size})
+                  </button>
+                  <button
+                    className="remove-members-btn"
+                    onClick={handleRemoveClick}
+                  >
+                    Retirer ({selectedMembers.size})
+                  </button>
                   <button
                     className="export-csv-btn"
                     onClick={handleExportClick}
@@ -326,6 +383,17 @@ const GroupMembersModal = ({ isOpen, onClose, group }) => {
         message={`Êtes-vous sûr de vouloir exporter ${selectedMembers.size} membre${selectedMembers.size > 1 ? 's' : ''} au format CSV ?`}
         confirmText="Confirmer l'export"
         isLoading={isExporting}
+      />
+
+      <ConfirmationModal
+        isOpen={showRemoveModal}
+        onClose={() => setShowRemoveModal(false)}
+        onConfirm={removeMembersFromGroup}
+        title="Retirer les membres du groupe"
+        message={`Êtes-vous sûr de vouloir retirer ${selectedMembers.size} membre${selectedMembers.size > 1 ? 's' : ''} du groupe "${group?.name}" ? Cette action est irréversible.`}
+        confirmText="Retirer"
+        cancelText="Annuler"
+        isLoading={isRemoving}
       />
     </>
   )

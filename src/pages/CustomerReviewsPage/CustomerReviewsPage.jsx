@@ -149,7 +149,8 @@ const CustomerReviewsPage = ({ onClose }) => {
       job: customer.job || '',
       country: customer.country || '',
       city: customer.city || '',
-      reference: customer.reference || ''
+      reference: customer.reference || '',
+      date: customer.date || ''
     })
     setIsEditing(false)
     setShowEditModal(true)
@@ -187,8 +188,69 @@ const CustomerReviewsPage = ({ onClose }) => {
     setLightboxImage(null)
   }
 
-  const handleSaveEdit = async () => {
+  const formatDateDisplay = (dateString) => {
+    if (!dateString) return 'Non renseigné'
+
+    // Si déjà au format JJ/MM/AAAA, retourner tel quel
+    const ddmmyyyyRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/
+    if (ddmmyyyyRegex.test(dateString)) {
+      return dateString
+    }
+
+    // Essayer de parser d'autres formats et convertir en JJ/MM/AAAA
     try {
+      const date = new Date(dateString)
+      if (!isNaN(date.getTime())) {
+        const day = String(date.getDate()).padStart(2, '0')
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const year = date.getFullYear()
+        return `${day}/${month}/${year}`
+      }
+    } catch {
+      // Si la conversion échoue, retourner la valeur originale
+      return dateString
+    }
+
+    return dateString
+  }
+
+  const validateDateFormat = (dateString) => {
+    if (!dateString) return true // Vide est accepté
+    const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/
+    const match = dateString.match(dateRegex)
+
+    if (!match) return false
+
+    const day = parseInt(match[1], 10)
+    const month = parseInt(match[2], 10)
+    const year = parseInt(match[3], 10)
+
+    // Vérifier que le mois est valide (01-12)
+    if (month < 1 || month > 12) return false
+
+    // Vérifier que le jour est valide (01-31)
+    if (day < 1 || day > 31) return false
+
+    // Vérifier les jours selon le mois
+    const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+
+    // Année bissextile
+    if (month === 2 && ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0)) {
+      return day <= 29
+    }
+
+    return day <= daysInMonth[month - 1]
+  }
+
+  const handleSaveEdit = async () => {
+    // Valider le format de la date avant de soumettre
+    if (editForm.date && !validateDateFormat(editForm.date)) {
+      setError('Le format de la date doit être JJ/MM/AAAA (ex: 15/03/2024)')
+      return
+    }
+
+    try {
+      setError('') // Réinitialiser l'erreur
       await updateCustomerReview(editingCustomer.id, editForm)
       setIsEditing(false)
       fetchReviews() // Recharger la liste
@@ -214,7 +276,8 @@ const CustomerReviewsPage = ({ onClose }) => {
         job: editingCustomer?.job || '',
         country: editingCustomer?.country || '',
         city: editingCustomer?.city || '',
-        reference: editingCustomer?.reference || ''
+        reference: editingCustomer?.reference || '',
+        date: editingCustomer?.date || ''
       })
     } else {
       setShowEditModal(false)
@@ -499,6 +562,10 @@ const CustomerReviewsPage = ({ onClose }) => {
                             <label>Référence</label>
                             <span>{editingCustomer?.reference || 'Non renseigné'}</span>
                           </div>
+                          <div className="info-item">
+                            <label>Date</label>
+                            <span>{formatDateDisplay(editingCustomer?.date)}</span>
+                          </div>
                         </div>
                       </div>
 
@@ -574,6 +641,15 @@ const CustomerReviewsPage = ({ onClose }) => {
                               value={editForm.reference}
                               onChange={(e) => handleFormChange('reference', e.target.value)}
                               placeholder="Référence"
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Date</label>
+                            <input
+                              type="text"
+                              value={editForm.date}
+                              onChange={(e) => handleFormChange('date', e.target.value)}
+                              placeholder="Ex: 15/03/2024"
                             />
                           </div>
                         </div>

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import CustomerDetailsModal from '../components/Modals/CustomerDetailsModal'
-import ConfirmationModal from '../components/Modals/ConfirmationModal'
-import AddToGroupModal from '../components/Modals/AddToGroupModal'
-import CustomerReviewsPage from './CustomerReviewsPage'
+import CustomerDetailsModal from '../../components/Modals/CustomerDetailsModal'
+import ConfirmationModal from '../../components/Modals/ConfirmationModal'
+import AddToGroupModal from '../../components/Modals/AddToGroupModal'
+import CustomerReviewsPage from '../CustomerReviewsPage/CustomerReviewsPage'
 import './ClientsPage.css'
 
 const API_URL = import.meta.env.VITE_API_URL
@@ -14,6 +14,7 @@ const ClientsPage = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCountry, setSelectedCountry] = useState('')
   const [selectedYear, setSelectedYear] = useState('')
+  const [selectedMonth, setSelectedMonth] = useState('')
   const [emailVerificationFilter, setEmailVerificationFilter] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalClients, setTotalClients] = useState(0)
@@ -94,7 +95,9 @@ const ClientsPage = () => {
         (emailVerificationFilter === 'verified' && client.verified_email === true) ||
         (emailVerificationFilter === 'unverified' && client.verified_email === false)
 
-      return matchesCountry && matchesYear && matchesEmailVerification
+      const matchesMonth = selectedMonth === '' || getClientMonth(client) === selectedMonth
+
+      return matchesCountry && matchesYear && matchesEmailVerification && matchesMonth
     })
 
     setFilteredClients(filtered)
@@ -106,7 +109,7 @@ const ClientsPage = () => {
     } else {
       setTotalFilteredClients(0)
     }
-  }, [clients, selectedCountry, selectedYear, emailVerificationFilter, totalClients])
+  }, [clients, selectedCountry, selectedYear, selectedMonth, emailVerificationFilter, totalClients])
 
   // Effet pour recharger les clients lors du changement de recherche
   useEffect(() => {
@@ -134,10 +137,48 @@ const ClientsPage = () => {
     return [...new Set(years)].sort().reverse() // Années les plus récentes en premier
   }
 
+  // Fonction pour extraire le mois d'un client (depuis date ou created_at)
+  const getClientMonth = (client) => {
+    // Essayer d'abord avec la clé "date" (format "xx/xx/xxxx" -> jour/mois/année)
+    if (client.date) {
+      const dateParts = client.date.split('/')
+      if (dateParts.length === 3) {
+        const month = dateParts[1] // Le mois est le deuxième élément
+        // Vérifier que le mois est valide (entre 01 et 12)
+        if (month && !isNaN(parseInt(month)) && parseInt(month) >= 1 && parseInt(month) <= 12) {
+          return month.padStart(2, '0') // Retourne "01" à "12"
+        }
+      }
+    }
+
+    // Si date est vide ou invalide, utiliser created_at (format ISO)
+    if (client.created_at) {
+      const dateObj = new Date(client.created_at)
+      if (!isNaN(dateObj.getTime())) {
+        return String(dateObj.getMonth() + 1).padStart(2, '0') // Retourne "01" à "12"
+      }
+    }
+
+    return ''
+  }
+
+  // Obtenir tous les mois de l'année
+  const getAllMonths = () => {
+    const monthNames = [
+      'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+    ]
+    return monthNames.map((name, index) => ({
+      value: String(index + 1).padStart(2, '0'),
+      label: name
+    }))
+  }
+
   const resetFilters = () => {
     setSearchTerm('')
     setSelectedCountry('')
     setSelectedYear('')
+    setSelectedMonth('')
     setEmailVerificationFilter('')
     setCurrentPage(1)
     // Recharger la première page sans filtres
@@ -246,8 +287,9 @@ const ClientsPage = () => {
           const matchesEmailVerification = emailVerificationFilter === '' ||
             (emailVerificationFilter === 'verified' && client.verified_email === true) ||
             (emailVerificationFilter === 'unverified' && client.verified_email === false)
+          const matchesMonth = selectedMonth === '' || getClientMonth(client) === selectedMonth
 
-          return matchesCountry && matchesYear && matchesEmailVerification
+          return matchesCountry && matchesYear && matchesEmailVerification && matchesMonth
         })
 
         // Sélectionner tous les IDs des clients filtrés
@@ -261,7 +303,7 @@ const ClientsPage = () => {
   }
 
   // Utiliser totalFilteredClients si des filtres sont appliqués, sinon totalClients
-  const totalSelectableClients = (selectedCountry || selectedYear || emailVerificationFilter)
+  const totalSelectableClients = (selectedCountry || selectedYear || selectedMonth || emailVerificationFilter)
     ? totalFilteredClients
     : totalClients
 
@@ -436,6 +478,19 @@ const ClientsPage = () => {
               <option value="">Toutes les années</option>
               {getUniqueYears().map(year => (
                 <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">Tous les mois</option>
+              {getAllMonths().map(month => (
+                <option key={month.value} value={month.value}>
+                  {month.label}
+                </option>
               ))}
             </select>
 

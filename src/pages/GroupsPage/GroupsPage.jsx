@@ -1,21 +1,23 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../contexts/AuthContext'
-import AddGroupModal from '../components/Modals/AddGroupModal'
-import GroupMembersModal from '../components/Modals/GroupMembersModal'
+import { useAuth } from '../../contexts/AuthContext'
+import AddGroupModal from '../../components/Modals/AddGroupModal'
+import ConfirmationModal from '../../components/Modals/ConfirmationModal'
 import './GroupsPage.css'
 
 const API_URL = import.meta.env.VITE_API_URL
 
-const GroupsPage = () => {
+const GroupsPage = ({ onOpenGroups }) => {
   const { user } = useAuth()
   const [groups, setGroups] = useState([])
   const [isLoadingGroups, setIsLoadingGroups] = useState(false)
   const [error, setError] = useState(null)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [showMembersModal, setShowMembersModal] = useState(false)
-  const [selectedGroup, setSelectedGroup] = useState(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [selectedGroups, setSelectedGroups] = useState(new Set())
+  const [groupToDelete, setGroupToDelete] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filteredGroups, setFilteredGroups] = useState([])
+  const [isDeletingGroup, setIsDeletingGroup] = useState(false)
 
   useEffect(() => {
     fetchGroups()
@@ -123,18 +125,63 @@ const GroupsPage = () => {
     setShowAddModal(false)
   }
 
-  const handleViewMembers = (group) => {
-    setSelectedGroup(group)
-    setShowMembersModal(true)
+  const handleOpenGroup = (group) => {
+    if (onOpenGroups) {
+      onOpenGroups([group.id])
+    }
   }
 
-  const handleDeleteGroup = async (groupId) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce groupe ?')) {
+  const handleGroupSelect = (groupId) => {
+    setSelectedGroups(prev => {
+      const newSelected = new Set(prev)
+      if (newSelected.has(groupId)) {
+        newSelected.delete(groupId)
+      } else {
+        newSelected.add(groupId)
+      }
+      return newSelected
+    })
+  }
+
+  const handleSelectAll = () => {
+    if (selectedGroups.size === filteredGroups.length) {
+      setSelectedGroups(new Set())
+    } else {
+      setSelectedGroups(new Set(filteredGroups.map(group => group.id)))
+    }
+  }
+
+  const handleDeleteSelected = () => {
+    if (selectedGroups.size === 0) return
+    // Pour simplifier, on supprime le premier groupe sélectionné
+    const firstGroupId = Array.from(selectedGroups)[0]
+    const group = groups.find(g => g.id === firstGroupId)
+    setGroupToDelete(group)
+    setShowDeleteModal(true)
+  }
+
+  const handleOpenSelected = () => {
+    if (selectedGroups.size === 0) return
+    const groupIds = Array.from(selectedGroups)
+    if (onOpenGroups) {
+      onOpenGroups(groupIds)
+    }
+  }
+
+  const handleRowClick = (group, e) => {
+    // Ne pas ouvrir si on clique sur la checkbox
+    if (e.target.type === 'checkbox' || e.target.closest('.checkbox-column')) {
       return
     }
+    handleOpenGroup(group)
+  }
 
+  const confirmDeleteGroup = async () => {
+    if (!groupToDelete) return
+
+    setIsDeletingGroup(true)
     try {
-      const response = await fetch(`${API_URL}/api/v1/groups/${groupId}`, {
+      const response = await fetch(`${API_URL}/api/v1/groups/${groupToDelete.id}`, {
         method: 'DELETE'
       })
 
@@ -143,12 +190,24 @@ const GroupsPage = () => {
       }
 
       // Retirer le groupe de la liste locale
-      setGroups(prev => prev.filter(group => group.id !== groupId))
+      setGroups(prev => prev.filter(group => group.id !== groupToDelete.id))
+      setSelectedGroups(prev => {
+        const newSelected = new Set(prev)
+        newSelected.delete(groupToDelete.id)
+        return newSelected
+      })
+      setShowDeleteModal(false)
+      setGroupToDelete(null)
     } catch (error) {
       console.error('Erreur lors de la suppression du groupe:', error)
       setError('Erreur lors de la suppression du groupe')
+    } finally {
+      setIsDeletingGroup(false)
     }
   }
+
+  const isAllSelected = filteredGroups.length > 0 && selectedGroups.size === filteredGroups.length
+  const isSomeSelected = selectedGroups.size > 0 && selectedGroups.size < filteredGroups.length
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A'
@@ -184,7 +243,7 @@ const GroupsPage = () => {
         </div>
       </div>
 
-      {/* Barre de recherche */}
+      {/* Barre de recherche et actions */}
       <div className="filters-section">
         <div className="search-filter">
           <input
@@ -195,6 +254,22 @@ const GroupsPage = () => {
             className="search-input"
           />
         </div>
+        {selectedGroups.size > 0 && (
+          <div className="selection-actions">
+            <button
+              className="open-group-btn"
+              onClick={handleOpenSelected}
+            >
+              Ouvrir {selectedGroups.size > 1 ? `(${selectedGroups.size})` : ''}
+            </button>
+            <button
+              className="delete-selected-btn"
+              onClick={handleDeleteSelected}
+            >
+              Supprimer ({selectedGroups.size})
+            </button>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -231,64 +306,52 @@ const GroupsPage = () => {
             </div>
           )}
 
-          <div className="groups-grid">
-            {filteredGroups.map((group) => (
-              <div key={group.id} className="group-card">
-                <div className="group-header">
-                  <h3 className="group-name">{group.name}</h3>
-                  <div className="group-actions">
-                    <button
-                      className="action-btn edit-btn"
-                      title="Modifier le groupe"
-                      onClick={() => console.log('Edit group', group.id)}
+          {filteredGroups.length > 0 && (
+            <div className="groups-table-container">
+              <table className="groups-table">
+                <thead>
+                  <tr>
+                    <th className="checkbox-column">
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        ref={input => {
+                          if (input) input.indeterminate = isSomeSelected
+                        }}
+                        onChange={handleSelectAll}
+                        title={isAllSelected ? "Tout désélectionner" : "Tout sélectionner"}
+                      />
+                    </th>
+                    <th>Nom</th>
+                    <th>Description</th>
+                    <th>Clients</th>
+                    <th>Date de création</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredGroups.map((group) => (
+                    <tr
+                      key={group.id}
+                      className={selectedGroups.has(group.id) ? 'selected-row' : ''}
+                      onClick={(e) => handleRowClick(group, e)}
                     >
-                      ✏️
-                    </button>
-                    <button
-                      className="action-btn delete-btn"
-                      title="Supprimer le groupe"
-                      onClick={() => handleDeleteGroup(group.id)}
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
-
-                <div className="group-description">
-                  <p>{group.description || 'Aucune description'}</p>
-                </div>
-
-                <div className="group-stats">
-                  <div className="stat-item">
-                    <span className="stat-label">Clients:</span>
-                    <span className="stat-value">{group.member_count || 0}</span>
-                  </div>
-                </div>
-
-                <div className="group-meta">
-                  <div className="meta-item">
-                    <span className="meta-label">Créé le:</span>
-                    <span className="meta-value">{formatDate(group.created_at)}</span>
-                  </div>
-                  {group.updated_at && (
-                    <div className="meta-item">
-                      <span className="meta-label">Modifié le:</span>
-                      <span className="meta-value">{formatDate(group.updated_at)}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="group-footer">
-                  <button
-                    className="view-members-btn"
-                    onClick={() => handleViewMembers(group)}
-                  >
-                    👥 Voir les membres
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+                      <td className="checkbox-column">
+                        <input
+                          type="checkbox"
+                          checked={selectedGroups.has(group.id)}
+                          onChange={() => handleGroupSelect(group.id)}
+                        />
+                      </td>
+                      <td className="group-name-cell">{group.name}</td>
+                      <td className="description-cell">{group.description || 'Aucune description'}</td>
+                      <td className="clients-cell">{group.member_count || 0}</td>
+                      <td className="date-cell">{formatDate(group.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -299,13 +362,18 @@ const GroupsPage = () => {
         userId={user?.id}
       />
 
-      <GroupMembersModal
-        isOpen={showMembersModal}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
         onClose={() => {
-          setShowMembersModal(false)
-          setSelectedGroup(null)
+          setShowDeleteModal(false)
+          setGroupToDelete(null)
         }}
-        group={selectedGroup}
+        onConfirm={confirmDeleteGroup}
+        title="Supprimer le groupe"
+        message={`Êtes-vous sûr de vouloir supprimer le groupe "${groupToDelete?.name}" ? Cette action est irréversible.`}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        isLoading={isDeletingGroup}
       />
     </div>
   )

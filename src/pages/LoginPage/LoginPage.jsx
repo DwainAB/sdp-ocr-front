@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useGoogleLogin } from '@react-oauth/google'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../../contexts/AuthContext'
 import './LoginPage.css'
 
 const LoginPage = () => {

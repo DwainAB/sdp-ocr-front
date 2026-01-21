@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { formatLastLogin } from '../utils/timeUtils'
-import AddUserModal from '../components/Modals/AddUserModal'
-import UserLoginHistoryModal from '../components/Modals/UserLoginHistoryModal'
-import UserDetailsModal from '../components/Modals/UserDetailsModal'
+import { formatLastLogin } from '../../utils/timeUtils'
+import AddUserModal from '../../components/Modals/AddUserModal'
+import UserLoginHistoryModal from '../../components/Modals/UserLoginHistoryModal'
+import UserDetailsModal from '../../components/Modals/UserDetailsModal'
 import './TeamPage.css'
 
 const API_URL = import.meta.env.VITE_API_URL
