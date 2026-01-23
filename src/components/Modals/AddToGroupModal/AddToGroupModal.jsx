@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import ConfirmationModal from './ConfirmationModal'
+import ConfirmationModal from '../ConfirmationModal/ConfirmationModal'
 import './AddToGroupModal.css'
 
 const API_URL = import.meta.env.VITE_API_URL

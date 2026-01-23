@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import CustomerDetailsModal from '../../components/Modals/CustomerDetailsModal'
-import ConfirmationModal from '../../components/Modals/ConfirmationModal'
-import AddToGroupModal from '../../components/Modals/AddToGroupModal'
+import CustomerDetailsModal from '../../components/Modals/CustomerDetailsModal/CustomerDetailsModal'
+import ConfirmationModal from '../../components/Modals/ConfirmationModal/ConfirmationModal'
+import AddToGroupModal from '../../components/Modals/AddToGroupModal/AddToGroupModal'
 import CustomerReviewsPage from '../CustomerReviewsPage/CustomerReviewsPage'
 import './ClientsPage.css'
 

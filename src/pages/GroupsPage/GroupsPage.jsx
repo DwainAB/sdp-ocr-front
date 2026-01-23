@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
-import AddGroupModal from '../../components/Modals/AddGroupModal'
-import ConfirmationModal from '../../components/Modals/ConfirmationModal'
+import AddGroupModal from '../../components/Modals/AddGroupModal/AddGroupModal'
+import ConfirmationModal from '../../components/Modals/ConfirmationModal/ConfirmationModal'
 import './GroupsPage.css'
 
 const API_URL = import.meta.env.VITE_API_URL

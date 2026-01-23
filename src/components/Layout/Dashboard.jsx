@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
-import ConfirmationModal from '../Modals/ConfirmationModal'
+import ConfirmationModal from '../Modals/ConfirmationModal/ConfirmationModal'
 import './Dashboard.css'
 
 const Dashboard = ({ children, activeSection, onSectionChange }) => {
