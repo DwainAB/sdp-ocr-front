@@ -26,6 +26,9 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
   const [modalError, setModalError] = useState('')
   const [selectedFormula, setSelectedFormula] = useState(null)
   const [showFormulaModal, setShowFormulaModal] = useState(false)
+  const [isEditingFormula, setIsEditingFormula] = useState(false)
+  const [editingFormulaData, setEditingFormulaData] = useState(null)
+  const [formulaSaving, setFormulaSaving] = useState(false)
 
   useEffect(() => {
     if (customer && isOpen) {
@@ -100,6 +103,82 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
   const closeFormulaModal = () => {
     setSelectedFormula(null)
     setShowFormulaModal(false)
+    setIsEditingFormula(false)
+    setEditingFormulaData(null)
+  }
+
+  const handleEditFormula = () => {
+    setEditingFormulaData(JSON.parse(JSON.stringify(selectedFormula)))
+    setIsEditingFormula(true)
+  }
+
+  const handleCancelEditFormula = () => {
+    setIsEditingFormula(false)
+    setEditingFormulaData(null)
+  }
+
+  const handleFormulaNoteCh = (noteType, index, field, value) => {
+    setEditingFormulaData(prev => {
+      const updated = { ...prev }
+      updated[noteType] = [...prev[noteType]]
+      updated[noteType][index] = { ...updated[noteType][index], [field]: value }
+      return updated
+    })
+  }
+
+  const handleAddFormulaNote = (noteType) => {
+    setEditingFormulaData(prev => {
+      const updated = { ...prev }
+      updated[noteType] = [...(prev[noteType] || []), { name: '', quantity: '' }]
+      return updated
+    })
+  }
+
+  const handleRemoveFormulaNote = (noteType, index) => {
+    setEditingFormulaData(prev => {
+      const updated = { ...prev }
+      updated[noteType] = prev[noteType].filter((_, i) => i !== index)
+      return updated
+    })
+  }
+
+  const handleSaveFormula = async () => {
+    if (!editingFormulaData?.id) return
+
+    setFormulaSaving(true)
+    try {
+      const response = await fetch(`${API_URL}/api/v1/formulas/${editingFormulaData.id}/notes`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          top_notes: editingFormulaData.top_notes || [],
+          heart_notes: editingFormulaData.heart_notes || [],
+          base_notes: editingFormulaData.base_notes || []
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la mise à jour de la formule')
+      }
+
+      const updatedFormula = await response.json()
+
+      // Mettre à jour la formule sélectionnée
+      setSelectedFormula(updatedFormula)
+
+      // Mettre à jour la liste des formules
+      setFormulas(prev => prev.map(f => f.id === updatedFormula.id ? updatedFormula : f))
+
+      setIsEditingFormula(false)
+      setEditingFormulaData(null)
+    } catch (error) {
+      console.error('Erreur:', error)
+      setModalError(error.message)
+    } finally {
+      setFormulaSaving(false)
+    }
   }
 
   const formatDateDisplay = (dateString) => {
@@ -622,10 +701,26 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
               <div className="modal-title-section">
                 <h2>Formule {selectedFormula.id}</h2>
               </div>
-              <button className="modal-close-btn" onClick={closeFormulaModal}>×</button>
+              <div className="header-actions">
+                {!isEditingFormula && (
+                  <button
+                    className="edit-btn"
+                    onClick={handleEditFormula}
+                  >
+                    ✏️ Modifier
+                  </button>
+                )}
+                <button className="modal-close-btn" onClick={closeFormulaModal}>×</button>
+              </div>
             </div>
 
             <div className="modal-body">
+              {modalError && (
+                <div className="form-error">
+                  <span>⚠️ {modalError}</span>
+                </div>
+              )}
+
               <div className="formula-detail-layout">
                 {/* Section Fichier associé */}
                 <div className="formula-file-section">
@@ -657,58 +752,202 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
                 {/* Section Formule */}
                 <div className="formula-notes-section">
                   <h4>Composition de la formule</h4>
-                  <div className="formula-notes-grid">
-                    {/* Notes de tête */}
-                    <div className="notes-column">
-                      <h5 className="notes-title">Notes de tête</h5>
-                      {selectedFormula.top_notes?.length > 0 ? (
-                        <ul className="notes-list">
-                          {selectedFormula.top_notes.map((note, idx) => (
-                            <li key={note.id || idx} className="note-item">
-                              <span className="note-name">{note.name}</span>
-                              <span className="note-quantity">{note.quantity}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="no-notes">Aucune note</p>
-                      )}
-                    </div>
 
-                    {/* Notes de cœur */}
-                    <div className="notes-column">
-                      <h5 className="notes-title">Notes de cœur</h5>
-                      {selectedFormula.heart_notes?.length > 0 ? (
-                        <ul className="notes-list">
-                          {selectedFormula.heart_notes.map((note, idx) => (
-                            <li key={note.id || idx} className="note-item">
-                              <span className="note-name">{note.name}</span>
-                              <span className="note-quantity">{note.quantity}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="no-notes">Aucune note</p>
-                      )}
-                    </div>
+                  {!isEditingFormula ? (
+                    // Mode lecture
+                    <div className="formula-notes-grid">
+                      {/* Notes de tête */}
+                      <div className="notes-column">
+                        <h5 className="notes-title">Notes de tête</h5>
+                        {selectedFormula.top_notes?.length > 0 ? (
+                          <ul className="notes-list">
+                            {selectedFormula.top_notes.map((note, idx) => (
+                              <li key={note.id || idx} className="note-item">
+                                <span className="note-name">{note.name}</span>
+                                <span className="note-quantity">{note.quantity}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="no-notes">Aucune note</p>
+                        )}
+                      </div>
 
-                    {/* Notes de fond */}
-                    <div className="notes-column">
-                      <h5 className="notes-title">Notes de fond</h5>
-                      {selectedFormula.base_notes?.length > 0 ? (
-                        <ul className="notes-list">
-                          {selectedFormula.base_notes.map((note, idx) => (
-                            <li key={note.id || idx} className="note-item">
-                              <span className="note-name">{note.name}</span>
-                              <span className="note-quantity">{note.quantity}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="no-notes">Aucune note</p>
-                      )}
+                      {/* Notes de cœur */}
+                      <div className="notes-column">
+                        <h5 className="notes-title">Notes de cœur</h5>
+                        {selectedFormula.heart_notes?.length > 0 ? (
+                          <ul className="notes-list">
+                            {selectedFormula.heart_notes.map((note, idx) => (
+                              <li key={note.id || idx} className="note-item">
+                                <span className="note-name">{note.name}</span>
+                                <span className="note-quantity">{note.quantity}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="no-notes">Aucune note</p>
+                        )}
+                      </div>
+
+                      {/* Notes de fond */}
+                      <div className="notes-column">
+                        <h5 className="notes-title">Notes de fond</h5>
+                        {selectedFormula.base_notes?.length > 0 ? (
+                          <ul className="notes-list">
+                            {selectedFormula.base_notes.map((note, idx) => (
+                              <li key={note.id || idx} className="note-item">
+                                <span className="note-name">{note.name}</span>
+                                <span className="note-quantity">{note.quantity}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="no-notes">Aucune note</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    // Mode édition
+                    <div className="formula-notes-grid editing">
+                      {/* Notes de tête - édition */}
+                      <div className="notes-column">
+                        <h5 className="notes-title">Notes de tête</h5>
+                        <div className="notes-edit-list">
+                          {editingFormulaData?.top_notes?.map((note, idx) => (
+                            <div key={idx} className="note-edit-item">
+                              <input
+                                type="text"
+                                value={note.name}
+                                onChange={(e) => handleFormulaNoteCh('top_notes', idx, 'name', e.target.value)}
+                                placeholder="Nom"
+                                className="note-input note-name-input"
+                              />
+                              <input
+                                type="text"
+                                value={note.quantity}
+                                onChange={(e) => handleFormulaNoteCh('top_notes', idx, 'quantity', e.target.value)}
+                                placeholder="Qté"
+                                className="note-input note-quantity-input"
+                              />
+                              <button
+                                type="button"
+                                className="note-remove-btn"
+                                onClick={() => handleRemoveFormulaNote('top_notes', idx)}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            className="note-add-btn"
+                            onClick={() => handleAddFormulaNote('top_notes')}
+                          >
+                            + Ajouter
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Notes de cœur - édition */}
+                      <div className="notes-column">
+                        <h5 className="notes-title">Notes de cœur</h5>
+                        <div className="notes-edit-list">
+                          {editingFormulaData?.heart_notes?.map((note, idx) => (
+                            <div key={idx} className="note-edit-item">
+                              <input
+                                type="text"
+                                value={note.name}
+                                onChange={(e) => handleFormulaNoteCh('heart_notes', idx, 'name', e.target.value)}
+                                placeholder="Nom"
+                                className="note-input note-name-input"
+                              />
+                              <input
+                                type="text"
+                                value={note.quantity}
+                                onChange={(e) => handleFormulaNoteCh('heart_notes', idx, 'quantity', e.target.value)}
+                                placeholder="Qté"
+                                className="note-input note-quantity-input"
+                              />
+                              <button
+                                type="button"
+                                className="note-remove-btn"
+                                onClick={() => handleRemoveFormulaNote('heart_notes', idx)}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            className="note-add-btn"
+                            onClick={() => handleAddFormulaNote('heart_notes')}
+                          >
+                            + Ajouter
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Notes de fond - édition */}
+                      <div className="notes-column">
+                        <h5 className="notes-title">Notes de fond</h5>
+                        <div className="notes-edit-list">
+                          {editingFormulaData?.base_notes?.map((note, idx) => (
+                            <div key={idx} className="note-edit-item">
+                              <input
+                                type="text"
+                                value={note.name}
+                                onChange={(e) => handleFormulaNoteCh('base_notes', idx, 'name', e.target.value)}
+                                placeholder="Nom"
+                                className="note-input note-name-input"
+                              />
+                              <input
+                                type="text"
+                                value={note.quantity}
+                                onChange={(e) => handleFormulaNoteCh('base_notes', idx, 'quantity', e.target.value)}
+                                placeholder="Qté"
+                                className="note-input note-quantity-input"
+                              />
+                              <button
+                                type="button"
+                                className="note-remove-btn"
+                                onClick={() => handleRemoveFormulaNote('base_notes', idx)}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            className="note-add-btn"
+                            onClick={() => handleAddFormulaNote('base_notes')}
+                          >
+                            + Ajouter
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Boutons de sauvegarde */}
+                      <div className="formula-edit-actions">
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          onClick={handleCancelEditFormula}
+                          disabled={formulaSaving}
+                        >
+                          Annuler
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-primary"
+                          onClick={handleSaveFormula}
+                          disabled={formulaSaving}
+                        >
+                          {formulaSaving ? 'Enregistrement...' : 'Enregistrer'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

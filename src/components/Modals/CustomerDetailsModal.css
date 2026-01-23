@@ -961,8 +961,102 @@
   border: 1px solid #d1d5db;
 }
 
+/* Mode édition des formules */
+.formula-notes-grid.editing {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.notes-edit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 80px;
+}
+
+.note-edit-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.note-input {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.note-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.note-name-input {
+  flex: 2;
+}
+
+.note-quantity-input {
+  flex: 1;
+  max-width: 80px;
+}
+
+.note-remove-btn {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.note-remove-btn:hover {
+  background: #fecaca;
+  border-color: #f87171;
+}
+
+.note-add-btn {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px dashed #6ee7b7;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.note-add-btn:hover {
+  background: #a7f3d0;
+  border-style: solid;
+}
+
+.formula-edit-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
 /* Responsive adjustments for formulas */
 @media (max-width: 1024px) {
+  .formula-notes-grid.editing {
+    grid-template-columns: 1fr;
+  }
 
   .formula-notes-grid {
     grid-template-columns: 1fr;
