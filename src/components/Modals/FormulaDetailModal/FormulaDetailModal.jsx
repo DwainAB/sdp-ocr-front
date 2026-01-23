@@ -142,12 +142,20 @@ const FormulaDetailModal = ({ isOpen, onClose, formula, onFormulaUpdated }) => {
             </div>
             <div className="header-actions">
               {!isEditingFormula && !formulaLoading && selectedFormula && (
-                <button
-                  className="edit-btn"
-                  onClick={handleEditFormula}
-                >
-                  ✏️ Modifier
-                </button>
+                <>
+                  <button
+                    className="edit-btn"
+                    onClick={handleEditFormula}
+                  >
+                    ✏️ Modifier
+                  </button>
+                  <button
+                    className="email-btn"
+                    onClick={() => window.location.href = `mailto:?subject=Formule ${selectedFormula.id}&body=Détails de la formule ${selectedFormula.id}`}
+                  >
+                    ✉️ Envoyer par mail
+                  </button>
+                </>
               )}
               <button className="modal-close-btn" onClick={handleClose}>×</button>
             </div>

@@ -52,6 +52,26 @@
   transform: translateY(-1px);
 }
 
+.formula-detail-modal-content .email-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.formula-detail-modal-content .email-btn:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
 .formula-detail-modal-content .modal-close-btn {
   background: none;
   border: none;

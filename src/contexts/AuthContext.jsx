@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-
-const API_URL = import.meta.env.VITE_API_URL
+import { authApi } from '../services/api'
 
 const AuthContext = createContext(null)
 
@@ -28,11 +27,7 @@ export const AuthProvider = ({ children }) => {
 
   const getUserFromDatabase = async (email) => {
     try {
-      const res = await fetch(
-          `${API_URL}/api/v1/users?email=${email}`
-      )
-      if (!res.ok) return null
-      const data = await res.json()
+      const data = await authApi.getUserByEmail(email)
       const users = data.users || data || []
       const user = users.find(
           u => u.email?.toLowerCase() === email.toLowerCase()
@@ -46,20 +41,8 @@ export const AuthProvider = ({ children }) => {
   const signalUserConnection = async (userId) => {
     try {
       console.log(`Signaler connexion pour user ID: ${userId}`)
-      const response = await fetch(`${API_URL}/api/v1/users/${userId}/login-status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ is_online: true })
-      })
-      console.log('Response status:', response.status)
-      if (!response.ok) {
-        const error = await response.text()
-        console.error('Erreur API:', error)
-      } else {
-        console.log('Statut de connexion mis à jour avec succès')
-      }
+      await authApi.updateLoginStatus(userId, true)
+      console.log('Statut de connexion mis à jour avec succès')
     } catch (error) {
       console.error('Erreur lors du signal de connexion:', error)
     }
@@ -68,20 +51,8 @@ export const AuthProvider = ({ children }) => {
   const recordLogin = async (userId) => {
     try {
       console.log(`Enregistrer historique de connexion pour user ID: ${userId}`)
-      const response = await fetch(`${API_URL}/api/v1/login-history/record`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: userId,
-          type: "connexion"
-        })
-      })
-      if (!response.ok) {
-        const error = await response.text()
-        console.error('Erreur lors de l\'enregistrement de l\'historique:', error)
-      } else {
-        console.log('Historique de connexion enregistré avec succès')
-      }
+      await authApi.recordLoginEvent(userId, "connexion")
+      console.log('Historique de connexion enregistré avec succès')
     } catch (error) {
       console.error('Erreur lors de l\'enregistrement de l\'historique de connexion:', error)
     }
@@ -90,20 +61,8 @@ export const AuthProvider = ({ children }) => {
   const recordLogout = async (userId) => {
     try {
       console.log(`Enregistrer déconnexion pour user ID: ${userId}`)
-      const response = await fetch(`${API_URL}/api/v1/login-history/record`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: userId,
-          type: "deconnexion"
-        })
-      })
-      if (!response.ok) {
-        const error = await response.text()
-        console.error('Erreur lors de l\'enregistrement de la déconnexion:', error)
-      } else {
-        console.log('Déconnexion enregistrée avec succès')
-      }
+      await authApi.recordLoginEvent(userId, "deconnexion")
+      console.log('Déconnexion enregistrée avec succès')
     } catch (error) {
       console.error('Erreur lors de l\'enregistrement de la déconnexion:', error)
     }
@@ -115,18 +74,7 @@ export const AuthProvider = ({ children }) => {
 
     try {
       // 1. Récupérer les infos Google
-      const res = await fetch(
-          'https://www.googleapis.com/oauth2/v3/userinfo',
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`
-            }
-          }
-      )
-
-      if (!res.ok) throw new Error('Google userinfo error')
-
-      const googleUser = await res.json()
+      const googleUser = await authApi.getGoogleUserInfo(accessToken)
 
       // 2. Récupérer l'utilisateur complet de la base de données
       const dbUser = await getUserFromDatabase(googleUser.email)
@@ -170,20 +118,8 @@ export const AuthProvider = ({ children }) => {
   const signalUserDisconnection = async (userId) => {
     try {
       console.log(`Signaler déconnexion pour user ID: ${userId}`)
-      const response = await fetch(`${API_URL}/api/v1/users/${userId}/login-status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ is_online: false })
-      })
-      console.log('Response status déconnexion:', response.status)
-      if (!response.ok) {
-        const error = await response.text()
-        console.error('Erreur API déconnexion:', error)
-      } else {
-        console.log('Statut de déconnexion mis à jour avec succès')
-      }
+      await authApi.updateLoginStatus(userId, false)
+      console.log('Statut de déconnexion mis à jour avec succès')
     } catch (error) {
       console.error('Erreur lors du signal de déconnexion:', error)
     }

@@ -3,9 +3,8 @@ import { formatLastLogin } from '../../utils/timeUtils'
 import AddUserModal from '../../components/Modals/AddUserModal/AddUserModal'
 import UserLoginHistoryModal from '../../components/Modals/UserLoginHistoryModal/UserLoginHistoryModal'
 import UserDetailsModal from '../../components/Modals/UserDetailsModal/UserDetailsModal'
+import { usersApi } from '../../services/api'
 import './TeamPage.css'
-
-const API_URL = import.meta.env.VITE_API_URL
 
 const TeamPage = () => {
   const [teamMembers, setTeamMembers] = useState([])
@@ -30,23 +29,18 @@ const TeamPage = () => {
     setIsLoading(true)
     setError(null)
     try {
-      let url = `${API_URL}/api/v1/users`
+      let data
 
       if (showOnlineOnly) {
-        url = `${API_URL}/api/v1/users/online`
+        data = await usersApi.getOnline()
       } else if (selectedTeam) {
-        url = `${API_URL}/api/v1/users/team/${selectedTeam}`
+        data = await usersApi.getByTeam(selectedTeam)
       } else if (selectedRole) {
-        url = `${API_URL}/api/v1/users/role/${selectedRole}`
+        data = await usersApi.getByRole(selectedRole)
+      } else {
+        data = await usersApi.getAll()
       }
 
-      const response = await fetch(url)
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
       setTeamMembers(data.users || data || [])
     } catch (error) {
       console.error('Erreur lors du chargement de l\'équipe:', error)

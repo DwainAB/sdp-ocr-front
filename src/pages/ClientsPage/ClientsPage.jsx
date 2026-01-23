@@ -3,6 +3,7 @@ import CustomerDetailsModal from '../../components/Modals/CustomerDetailsModal/C
 import ConfirmationModal from '../../components/Modals/ConfirmationModal/ConfirmationModal'
 import AddToGroupModal from '../../components/Modals/AddToGroupModal/AddToGroupModal'
 import CustomerReviewsPage from '../CustomerReviewsPage/CustomerReviewsPage'
+import { customersApi, customerReviewsApi, exportApi } from '../../services/api'
 import './ClientsPage.css'
 
 const API_URL = import.meta.env.VITE_API_URL

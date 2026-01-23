@@ -1,7 +1,6 @@
 import { useState } from 'react'
+import { usersApi } from '../../../services/api'
 import './AddUserModal.css'
-
-const API_URL = import.meta.env.VITE_API_URL
 
 const AddUserModal = ({ isOpen, onClose, onUserAdded }) => {
   const [formData, setFormData] = useState({
@@ -30,20 +29,7 @@ const AddUserModal = ({ isOpen, onClose, onUserAdded }) => {
     setError('')
 
     try {
-      const response = await fetch(`${API_URL}/api/v1/users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Erreur lors de la création')
-      }
-
-      const newUser = await response.json()
+      const newUser = await usersApi.create(formData)
       console.log('Utilisateur créé:', newUser)
 
       // Réinitialiser le formulaire

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
+import { usersApi } from '../../../services/api'
 import './UserDetailsModal.css'
-
-const API_URL = import.meta.env.VITE_API_URL
 
 const UserDetailsModal = ({ isOpen, onClose, onUserUpdated, user, onViewLogs }) => {
   const [formData, setFormData] = useState({
@@ -73,20 +72,7 @@ const UserDetailsModal = ({ isOpen, onClose, onUserUpdated, user, onViewLogs }) 
         return
       }
 
-      const response = await fetch(`${API_URL}/api/v1/users/${user.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(changedFields)
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Erreur lors de la mise à jour')
-      }
-
-      const updatedUser = await response.json()
+      const updatedUser = await usersApi.update(user.id, changedFields)
       console.log('Utilisateur mis à jour:', updatedUser)
 
       onUserUpdated(updatedUser)

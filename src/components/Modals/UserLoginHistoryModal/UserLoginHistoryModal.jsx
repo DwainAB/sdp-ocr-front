@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
+import { usersApi } from '../../../services/api'
 import './UserLoginHistoryModal.css'
-
-const API_URL = import.meta.env.VITE_API_URL
 
 const UserLoginHistoryModal = ({ isOpen, onClose, user }) => {
   const [loginHistory, setLoginHistory] = useState([])
@@ -21,20 +20,7 @@ const UserLoginHistoryModal = ({ isOpen, onClose, user }) => {
   const getUserHistory = async (userId, page = 1, year = '', month = '') => {
     try {
       console.log(`Fetching logs for user ID: ${userId}, page: ${page}, year: ${year}, month: ${month}`)
-      let url = `${API_URL}/api/v1/login-history/user/${userId}?page=${page}&size=10`
-
-      if (year) {
-        url += `&year=${year}`
-      }
-      if (month) {
-        url += `&month=${month}`
-      }
-
-      const response = await fetch(url)
-      if (!response.ok) {
-        throw new Error('Erreur lors de la récupération de l\'historique')
-      }
-      const data = await response.json()
+      const data = await usersApi.getLoginHistory(userId, page, 10, year || null, month || null)
       console.log('API Response:', data)
       return data
     } catch (error) {
@@ -46,11 +32,7 @@ const UserLoginHistoryModal = ({ isOpen, onClose, user }) => {
   const getAvailablePeriods = async (userId) => {
     try {
       console.log(`Fetching available periods for user ID: ${userId}`)
-      const response = await fetch(`${API_URL}/api/v1/login-history/user/${userId}/periods`)
-      if (!response.ok) {
-        throw new Error('Erreur lors de la récupération des périodes')
-      }
-      const data = await response.json()
+      const data = await usersApi.getLoginHistoryPeriods(userId)
       console.log('Available periods:', data)
       return data.periods || []
     } catch (error) {
