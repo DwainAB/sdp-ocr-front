@@ -21,6 +21,11 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
   const [customerFiles, setCustomerFiles] = useState([])
   const [filesLoading, setFilesLoading] = useState(false)
   const [lightboxImage, setLightboxImage] = useState(null)
+  const [formulas, setFormulas] = useState([])
+  const [editingFormulas, setEditingFormulas] = useState([])
+  const [modalError, setModalError] = useState('')
+  const [selectedFormula, setSelectedFormula] = useState(null)
+  const [showFormulaModal, setShowFormulaModal] = useState(false)
 
   useEffect(() => {
     if (customer && isOpen) {
@@ -40,6 +45,8 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
 
       // Charger les fichiers du client
       fetchCustomerFiles(customer.id)
+      // Charger les formules du client
+      fetchCustomerFormulas(customer.id)
     }
   }, [customer, isOpen])
 
@@ -54,16 +61,45 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
       }
 
       const data = await response.json()
+      console.log('Files from API:', data.files)
 
-      // Filtrer uniquement les images PNG
-      const imageFiles = data.files.filter(file => file.file_type === 'image/png')
-      setCustomerFiles(imageFiles)
+      // Ne plus filtrer - prendre tous les fichiers
+      setCustomerFiles(data.files || [])
     } catch (error) {
       console.error('Erreur lors du chargement des fichiers:', error)
       setCustomerFiles([])
     } finally {
       setFilesLoading(false)
     }
+  }
+
+  const fetchCustomerFormulas = async (customerId) => {
+    if (!customerId) return
+
+    try {
+      const response = await fetch(`${API_URL}/api/v1/customers/${customerId}`)
+      if (!response.ok) {
+        throw new Error('Erreur lors de la récupération des formules')
+      }
+
+      const data = await response.json()
+      setFormulas(data.formulas || [])
+      setEditingFormulas(JSON.parse(JSON.stringify(data.formulas || []))) // Deep copy
+    } catch (error) {
+      console.error('Erreur lors du chargement des formules:', error)
+      setFormulas([])
+      setEditingFormulas([])
+    }
+  }
+
+  const handleFormulaClick = (formula) => {
+    setSelectedFormula(formula)
+    setShowFormulaModal(true)
+  }
+
+  const closeFormulaModal = () => {
+    setSelectedFormula(null)
+    setShowFormulaModal(false)
   }
 
   const formatDateDisplay = (dateString) => {
@@ -361,37 +397,25 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
                 </div>
               </div>
 
-              {/* Section des fichiers */}
+              {/* Section des formules */}
               <div className="info-section files-section">
-                <h3>Documents & Images ({customerFiles.length})</h3>
-                {filesLoading ? (
-                  <div className="files-loading">
-                    <span className="spinner"></span>
-                    <span>Chargement des fichiers...</span>
-                  </div>
-                ) : customerFiles.length > 0 ? (
-                  <div className="files-grid">
-                    {customerFiles.map(file => (
-                      <div key={file.id} className="file-item">
-                        <img
-                          src={`${API_URL}/api/v1/files/${file.id}/content`}
-                          alt={file.file_name}
-                          className="file-thumbnail"
-                          loading="lazy"
-                          onClick={() => openLightbox(file)}
-                        />
-                        <div className="file-info">
-                          <p className="file-name" title={file.file_name}>
-                            {file.file_name}
-                          </p>
-                        </div>
-                      </div>
+                <h3>Formules disponibles ({formulas.length})</h3>
+                {formulas.length > 0 ? (
+                  <div className="formulas-buttons-list">
+                    {formulas.map((formula) => (
+                      <button
+                        key={formula.id}
+                        className="formula-button"
+                        onClick={() => handleFormulaClick(formula)}
+                      >
+                        Formule {formula.id}
+                      </button>
                     ))}
                   </div>
                 ) : (
                   <div className="no-files">
-                    <span className="no-files-icon">📄</span>
-                    <p>Aucun fichier disponible pour ce client</p>
+                    <span className="no-files-icon">📋</span>
+                    <p>Aucune formule disponible pour ce client</p>
                   </div>
                 )}
               </div>
@@ -565,19 +589,128 @@ const CustomerDetailsModal = ({ isOpen, onClose, onCustomerUpdated, customer, on
               ✕
             </button>
             <img
-              src={`${API_URL}/api/v1/files/${lightboxImage.id}/content`}
+              src={lightboxImage.isFormula
+                ? `${API_URL}/api/v1/formulas/${lightboxImage.id}/file/thumbnail`
+                : `${API_URL}/api/v1/files/${lightboxImage.id}/content`
+              }
               alt={lightboxImage.file_name}
               className="lightbox-image"
             />
             <div className="lightbox-info">
               <p>{lightboxImage.file_name}</p>
               <a
-                href={`${API_URL}/api/v1/files/${lightboxImage.id}/download`}
+                href={lightboxImage.isFormula
+                  ? `${API_URL}/api/v1/files/${lightboxImage.id}/download`
+                  : `${API_URL}/api/v1/files/${lightboxImage.id}/download`
+                }
+                target="_blank"
                 download
                 className="lightbox-download-btn"
               >
                 ⬇️ Télécharger
               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal pour afficher une formule spécifique avec son fichier */}
+      {showFormulaModal && selectedFormula && (
+        <div className="modal-overlay" onClick={closeFormulaModal}>
+          <div className="customer-details-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title-section">
+                <h2>Formule {selectedFormula.id}</h2>
+              </div>
+              <button className="modal-close-btn" onClick={closeFormulaModal}>×</button>
+            </div>
+
+            <div className="modal-body">
+              <div className="formula-detail-layout">
+                {/* Section Fichier associé */}
+                <div className="formula-file-section">
+                  <h4>Document associé</h4>
+                  {selectedFormula.id ? (
+                    <div className="formula-file-preview">
+                      <img
+                        src={`${API_URL}/api/v1/formulas/${selectedFormula.id}/file/thumbnail`}
+                        alt={`Fichier de la formule ${selectedFormula.id}`}
+                        className="formula-preview-image"
+                        type="application/pdf"
+                        onClick={() => {
+                          setLightboxImage({
+                            id: selectedFormula.id,
+                            file_name: `Formule ${selectedFormula.id}`,
+                            isFormula: true
+                          })
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="no-files">
+                      <span className="no-files-icon">📄</span>
+                      <p>Aucun document associé</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section Formule */}
+                <div className="formula-notes-section">
+                  <h4>Composition de la formule</h4>
+                  <div className="formula-notes-grid">
+                    {/* Notes de tête */}
+                    <div className="notes-column">
+                      <h5 className="notes-title">Notes de tête</h5>
+                      {selectedFormula.top_notes?.length > 0 ? (
+                        <ul className="notes-list">
+                          {selectedFormula.top_notes.map((note, idx) => (
+                            <li key={note.id || idx} className="note-item">
+                              <span className="note-name">{note.name}</span>
+                              <span className="note-quantity">{note.quantity}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="no-notes">Aucune note</p>
+                      )}
+                    </div>
+
+                    {/* Notes de cœur */}
+                    <div className="notes-column">
+                      <h5 className="notes-title">Notes de cœur</h5>
+                      {selectedFormula.heart_notes?.length > 0 ? (
+                        <ul className="notes-list">
+                          {selectedFormula.heart_notes.map((note, idx) => (
+                            <li key={note.id || idx} className="note-item">
+                              <span className="note-name">{note.name}</span>
+                              <span className="note-quantity">{note.quantity}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="no-notes">Aucune note</p>
+                      )}
+                    </div>
+
+                    {/* Notes de fond */}
+                    <div className="notes-column">
+                      <h5 className="notes-title">Notes de fond</h5>
+                      {selectedFormula.base_notes?.length > 0 ? (
+                        <ul className="notes-list">
+                          {selectedFormula.base_notes.map((note, idx) => (
+                            <li key={note.id || idx} className="note-item">
+                              <span className="note-name">{note.name}</span>
+                              <span className="note-quantity">{note.quantity}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="no-notes">Aucune note</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
