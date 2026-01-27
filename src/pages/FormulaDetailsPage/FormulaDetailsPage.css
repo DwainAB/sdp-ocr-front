@@ -1,0 +1,641 @@
+/* FormulaDetailsPage.css */
+
+.formula-details-page {
+  max-width: 1200px;
+}
+
+.formula-details-page .header-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.formula-details-page .header-title h2 {
+  margin: 0;
+}
+
+.back-btn {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.back-btn:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+/* Loading container */
+.formula-loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 40px;
+}
+
+.formula-loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 20px;
+  padding: 60px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 24px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  max-width: 400px;
+}
+
+.formula-loading-content h3 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.formula-loading-content p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.loading-spinner-large {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-spinner-large .spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid #e2e8f0;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Form error */
+.form-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Formula detail content */
+.formula-detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* File section */
+.formula-file-section {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.formula-file-section h4 {
+  margin: 0 0 20px 0;
+  color: #374151;
+  font-size: 1.125rem;
+  font-weight: 600;
+  text-align: center;
+  width: 100%;
+}
+
+.formula-file-preview {
+  width: 100%;
+  max-width: 800px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.formula-preview-image {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.formula-preview-image:hover {
+  transform: scale(1.02);
+}
+
+.no-files {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.no-files-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.no-files p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+/* Notes section */
+.formula-notes-section {
+  background: #fefce8;
+  border: 1px solid #fde047;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.formula-notes-section h4 {
+  margin: 0 0 24px 0;
+  color: #374151;
+  font-size: 1.125rem;
+  font-weight: 600;
+  border-bottom: 1px solid #fde047;
+  padding-bottom: 12px;
+}
+
+.formula-notes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.notes-column {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.notes-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 3px solid;
+  color: #374151;
+}
+
+.top-notes-title {
+  border-color: #f59e0b;
+}
+
+.heart-notes-title {
+  border-color: #ef4444;
+}
+
+.base-notes-title {
+  border-color: #8b5cf6;
+}
+
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  min-height: 100px;
+}
+
+.note-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #1f2937;
+  transition: all 0.2s ease;
+}
+
+.note-item:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.note-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.note-quantity {
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 12px;
+  padding: 4px 10px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+}
+
+.no-notes {
+  color: #9ca3af;
+  font-style: italic;
+  font-size: 0.875rem;
+  margin: 0;
+  text-align: center;
+  padding: 20px;
+}
+
+/* Comment section */
+.formula-comment-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.formula-comment {
+  padding: 16px 20px;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  color: #1f2937;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+/* Edit mode */
+.formula-notes-grid.editing {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.notes-edit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 100px;
+}
+
+.note-edit-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.note-input {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.note-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.note-name-input {
+  flex: 2;
+}
+
+.note-quantity-input {
+  flex: 1;
+  max-width: 80px;
+}
+
+.note-remove-btn {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.note-remove-btn:hover {
+  background: #fecaca;
+  border-color: #f87171;
+}
+
+.note-add-btn {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px dashed #6ee7b7;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.note-add-btn:hover {
+  background: #a7f3d0;
+  border-style: solid;
+}
+
+.formula-comment-edit {
+  grid-column: 1 / -1;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.formula-comment-input {
+  width: 100%;
+  padding: 14px 18px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 100px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.formula-comment-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.formula-edit-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-secondary,
+.btn-primary {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.btn-primary {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #2563eb;
+  border-color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Action buttons */
+.formula-details-page .edit-btn {
+  background: #3b82f6 !important;
+}
+
+.formula-details-page .email-btn {
+  background: #10b981 !important;
+}
+
+/* Lightbox */
+.lightbox-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.lightbox-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: zoomIn 0.3s ease;
+}
+
+@keyframes zoomIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.lightbox-close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  color: #1f2937;
+  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-weight: bold;
+  z-index: 10001;
+}
+
+.lightbox-close:hover {
+  background: white;
+  transform: rotate(90deg);
+}
+
+.lightbox-image {
+  max-width: 100%;
+  max-height: calc(90vh - 100px);
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.lightbox-info {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 16px 24px;
+  border-radius: 8px;
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.lightbox-info p {
+  margin: 0;
+  color: #1f2937;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.lightbox-download-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.lightbox-download-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .formula-notes-grid,
+  .formula-notes-grid.editing {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .formula-details-page .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .formula-file-section,
+  .formula-notes-section {
+    padding: 16px;
+  }
+
+  .formula-edit-actions {
+    flex-direction: column;
+  }
+
+  .btn-secondary,
+  .btn-primary {
+    width: 100%;
+  }
+
+  .lightbox-close {
+    top: 10px;
+    right: 10px;
+  }
+
+  .lightbox-info {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .lightbox-download-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

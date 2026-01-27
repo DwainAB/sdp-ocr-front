@@ -3,6 +3,7 @@ import { formatLastLogin } from '../../utils/timeUtils'
 import AddUserModal from '../../components/Modals/AddUserModal/AddUserModal'
 import UserLoginHistoryModal from '../../components/Modals/UserLoginHistoryModal/UserLoginHistoryModal'
 import UserDetailsModal from '../../components/Modals/UserDetailsModal/UserDetailsModal'
+import RolesManagementModal from '../../components/Modals/RolesManagementModal/RolesManagementModal'
 import { usersApi } from '../../services/api'
 import './TeamPage.css'
 
@@ -20,6 +21,7 @@ const TeamPage = () => {
   const [selectedUserForHistory, setSelectedUserForHistory] = useState(null)
   const [showUserDetailsModal, setShowUserDetailsModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState(null)
+  const [showRolesModal, setShowRolesModal] = useState(false)
 
   useEffect(() => {
     fetchTeamMembers()
@@ -146,6 +148,10 @@ const TeamPage = () => {
           <p>Gestion des membres de l'équipe ({filteredMembers.length} membre{filteredMembers.length !== 1 ? 's' : ''} sur {teamMembers.length})</p>
         </div>
         <div className="header-actions">
+          <button className="action-btn roles-btn" onClick={() => setShowRolesModal(true)}>
+            <span className="btn-icon">⚙</span>
+            <span className="btn-tooltip">Gestion des rôles</span>
+          </button>
           <button className="action-btn add-btn" onClick={handleAddMember}>
             <span className="btn-icon">+</span>
             <span className="btn-tooltip">Ajouter un membre</span>
@@ -323,6 +329,12 @@ const TeamPage = () => {
         onUserUpdated={handleUserUpdated}
         user={selectedUser}
         onViewLogs={handleViewLogs}
+      />
+
+      <RolesManagementModal
+        isOpen={showRolesModal}
+        onClose={() => setShowRolesModal(false)}
+        onRolesUpdated={fetchTeamMembers}
       />
     </div>
   )

@@ -373,6 +373,69 @@ export const exportApi = {
   },
 };
 
+// ============================================
+// GESTION DES RÔLES
+// ============================================
+
+export const rolesApi = {
+  // Récupérer tous les rôles avec pagination
+  getAll: async (page = 1, size = 50, search = null, includeDeleted = false) => {
+    let url = `${API_URL}/api/v1/roles/?page=${page}&size=${size}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (includeDeleted) url += `&include_deleted=true`;
+    const response = await fetch(url);
+    return handleResponse(response);
+  },
+
+  // Récupérer un rôle par ID
+  getById: async (roleId) => {
+    const response = await fetch(`${API_URL}/api/v1/roles/${roleId}`);
+    return handleResponse(response);
+  },
+
+  // Créer un nouveau rôle
+  create: async (roleData) => {
+    const response = await fetch(`${API_URL}/api/v1/roles/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(roleData),
+    });
+    return handleResponse(response);
+  },
+
+  // Mettre à jour un rôle
+  update: async (roleId, roleData) => {
+    const response = await fetch(`${API_URL}/api/v1/roles/${roleId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(roleData),
+    });
+    return handleResponse(response);
+  },
+
+  // Supprimer un rôle (soft delete)
+  delete: async (roleId) => {
+    const response = await fetch(`${API_URL}/api/v1/roles/${roleId}`, {
+      method: 'DELETE',
+    });
+    return handleResponse(response);
+  },
+
+  // Restaurer un rôle supprimé
+  restore: async (roleId) => {
+    const response = await fetch(`${API_URL}/api/v1/roles/${roleId}/restore`, {
+      method: 'POST',
+    });
+    return handleResponse(response);
+  },
+
+  // Récupérer les utilisateurs d'un rôle
+  getUsersByRole: async (roleId) => {
+    const response = await fetch(`${API_URL}/api/v1/users/role/${roleId}`);
+    return handleResponse(response);
+  },
+};
+
 // Export par défaut de toutes les APIs
 export default {
   auth: authApi,
@@ -384,4 +447,5 @@ export default {
   files: filesApi,
   ocr: ocrApi,
   export: exportApi,
+  roles: rolesApi,
 };

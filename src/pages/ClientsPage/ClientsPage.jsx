@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import CustomerDetailsModal from '../../components/Modals/CustomerDetailsModal/CustomerDetailsModal'
 import ConfirmationModal from '../../components/Modals/ConfirmationModal/ConfirmationModal'
 import AddToGroupModal from '../../components/Modals/AddToGroupModal/AddToGroupModal'
 import CustomerReviewsPage from '../CustomerReviewsPage/CustomerReviewsPage'
@@ -8,7 +7,7 @@ import './ClientsPage.css'
 
 const API_URL = import.meta.env.VITE_API_URL
 
-const ClientsPage = () => {
+const ClientsPage = ({ onOpenCustomer }) => {
   const [clients, setClients] = useState([])
   const [filteredClients, setFilteredClients] = useState([])
   const [isLoadingClients, setIsLoadingClients] = useState(false)
@@ -22,8 +21,6 @@ const ClientsPage = () => {
   const [totalFilteredClients, setTotalFilteredClients] = useState(0)
   const [pageSize] = useState(20)
   const [error, setError] = useState(null)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [selectedCustomer, setSelectedCustomer] = useState(null)
   const [selectedClients, setSelectedClients] = useState(new Set())
   const [showExportModal, setShowExportModal] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
@@ -222,8 +219,9 @@ const ClientsPage = () => {
   }
 
   const handleViewClient = (client) => {
-    setSelectedCustomer(client)
-    setShowEditModal(true)
+    if (onOpenCustomer) {
+      onOpenCustomer(client.id)
+    }
   }
 
   const handleRowClick = (client, e) => {
@@ -232,14 +230,6 @@ const ClientsPage = () => {
       return
     }
     handleViewClient(client)
-  }
-
-  const handleCustomerUpdated = (updatedCustomer) => {
-    // Mettre à jour la liste des clients
-    setClients(prev => prev.map(client =>
-      client.id === updatedCustomer.id ? updatedCustomer : client
-    ))
-    fetchClients() // Recharger pour être sûr d'avoir les dernières données
   }
 
   // Gestion de la sélection des clients
@@ -656,13 +646,6 @@ const ClientsPage = () => {
           </div>
         </div>
       )}
-
-      <CustomerDetailsModal
-        isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        onCustomerUpdated={handleCustomerUpdated}
-        customer={selectedCustomer}
-      />
 
       <ConfirmationModal
         isOpen={showExportModal}
