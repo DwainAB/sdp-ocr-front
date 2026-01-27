@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import EmailTypeModal from '../../components/Modals/EmailTypeModal/EmailTypeModal'
+import ActionsModal from '../../components/Modals/ActionsModal/ActionsModal'
+import DerivedProductsOrderModal from '../../components/Modals/DerivedProductsOrderModal/DerivedProductsOrderModal'
 import './FormulaDetailsPage.css'
 
 const API_URL = import.meta.env.VITE_API_URL
 
 const FormulaDetailsPage = ({ formulaId, customerId, onBack, onFormulaUpdated }) => {
   const [formula, setFormula] = useState(null)
+  const [customer, setCustomer] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [isEditing, setIsEditing] = useState(false)
@@ -13,12 +16,98 @@ const FormulaDetailsPage = ({ formulaId, customerId, onBack, onFormulaUpdated })
   const [isSaving, setIsSaving] = useState(false)
   const [lightboxImage, setLightboxImage] = useState(null)
   const [showEmailModal, setShowEmailModal] = useState(false)
+  const [showActionsModal, setShowActionsModal] = useState(false)
+  const [showDerivedProductsModal, setShowDerivedProductsModal] = useState(false)
+
+  // Fonction pour parser une quantité en nombre
+  const parseQuantity = (quantity) => {
+    if (!quantity) return { value: 0, valid: false }
+    const str = String(quantity).trim()
+
+    // Vérifie si c'est un format invalide (contient +, -, ✓, plusieurs nombres, etc.)
+    // On accepte uniquement: un nombre simple avec éventuellement une virgule/point décimal
+    // et optionnellement une unité à la fin (ml, g, etc.)
+    const invalidPatterns = /[+\-×÷✓✗xX*/]|(\d+\s+\d+)/
+    if (invalidPatterns.test(str)) {
+      return { value: 0, valid: false }
+    }
+
+    // Extrait le nombre au début de la chaîne (ex: "10ml" -> "10", "1,5" -> "1.5")
+    const match = str.match(/^[\d,.\s]+/)
+    if (!match) return { value: 0, valid: false }
+
+    const cleaned = match[0].replace(',', '.').replace(/\s/g, '')
+    const parsed = parseFloat(cleaned)
+    return { value: isNaN(parsed) ? 0 : parsed, valid: !isNaN(parsed) && cleaned !== '' }
+  }
+
+  // Fonction pour calculer les totaux et pourcentages d'une liste de notes
+  const calculateNotesStats = (notes) => {
+    if (!notes || notes.length === 0) return { total: 0, hasInvalidQuantities: false, invalidNotes: [] }
+
+    let total = 0
+    const invalidNotes = []
+
+    notes.forEach(note => {
+      const { value, valid } = parseQuantity(note.quantity)
+      if (valid) {
+        total += value
+      } else if (note.quantity && note.quantity.trim() !== '') {
+        invalidNotes.push(note.name || 'Note sans nom')
+      }
+    })
+
+    return { total, hasInvalidQuantities: invalidNotes.length > 0, invalidNotes }
+  }
+
+  // Fonction pour calculer le total global de la formule
+  const calculateFormulaStats = (data) => {
+    if (!data) return { grandTotal: 0, allInvalidNotes: [], hasAnyInvalid: false }
+
+    const topStats = calculateNotesStats(data.top_notes)
+    const heartStats = calculateNotesStats(data.heart_notes)
+    const baseStats = calculateNotesStats(data.base_notes)
+
+    const grandTotal = topStats.total + heartStats.total + baseStats.total
+    const allInvalidNotes = [...topStats.invalidNotes, ...heartStats.invalidNotes, ...baseStats.invalidNotes]
+
+    return {
+      grandTotal,
+      allInvalidNotes,
+      hasAnyInvalid: allInvalidNotes.length > 0,
+      topTotal: topStats.total,
+      heartTotal: heartStats.total,
+      baseTotal: baseStats.total
+    }
+  }
 
   useEffect(() => {
     if (formulaId) {
       fetchFormulaDetails(formulaId)
     }
-  }, [formulaId])
+    if (customerId) {
+      fetchCustomerDetails(customerId)
+    }
+  }, [formulaId, customerId])
+
+  const fetchCustomerDetails = async (id) => {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/customers/${id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setCustomer(data)
+      }
+    } catch (error) {
+      console.error('Erreur lors de la récupération du client:', error)
+    }
+  }
+
+  const handleActionSelect = (actionId) => {
+    setShowActionsModal(false)
+    if (actionId === 'derived-products') {
+      setShowDerivedProductsModal(true)
+    }
+  }
 
   const fetchFormulaDetails = async (id) => {
     setIsLoading(true)
@@ -89,7 +178,8 @@ const FormulaDetailsPage = ({ formulaId, customerId, onBack, onFormulaUpdated })
           top_notes: editingData.top_notes || [],
           heart_notes: editingData.heart_notes || [],
           base_notes: editingData.base_notes || [],
-          comment: editingData.comment || ''
+          comment: editingData.comment || '',
+          date: editingData.date || ''
         })
       })
 
@@ -165,11 +255,21 @@ const FormulaDetailsPage = ({ formulaId, customerId, onBack, onFormulaUpdated })
           </button>
           <div className="header-title">
             <h2>Formule {formula?.id || ''}</h2>
+            {formula?.date && (
+              <span className="formula-date">Date : {formula.date}</span>
+            )}
           </div>
         </div>
         <div className="header-actions">
           {!isEditing && formula && (
             <>
+              <button
+                className="action-btn add-btn"
+                onClick={() => setShowActionsModal(true)}
+              >
+                <span className="btn-icon">+</span>
+                <span className="btn-tooltip">Actions</span>
+              </button>
               <button className="action-btn edit-btn" onClick={handleEditFormula}>
                 <span className="btn-icon">✏️</span>
                 <span className="btn-tooltip">Modifier</span>
@@ -230,68 +330,118 @@ const FormulaDetailsPage = ({ formulaId, customerId, onBack, onFormulaUpdated })
 
             {!isEditing ? (
               // Mode lecture
-              <>
-                <div className="formula-notes-grid">
-                  {/* Notes de tête */}
-                  <div className="notes-column">
-                    <h5 className="notes-title top-notes-title">Notes de tête</h5>
-                    {formula.top_notes?.length > 0 ? (
-                      <ul className="notes-list">
-                        {formula.top_notes.map((note, idx) => (
-                          <li key={note.id || idx} className="note-item">
-                            <span className="note-name">{note.name}</span>
-                            <span className="note-quantity">{note.quantity}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="no-notes">Aucune note</p>
-                    )}
-                  </div>
+              (() => {
+                const stats = calculateFormulaStats(formula)
+                return (
+                  <>
+                    <div className="formula-notes-grid">
+                      {/* Notes de tête */}
+                      <div className="notes-column">
+                        <h5 className="notes-title top-notes-title">Notes de tête</h5>
+                        {formula.top_notes?.length > 0 ? (
+                          <ul className="notes-list">
+                            {formula.top_notes.map((note, idx) => (
+                              <li key={note.id || idx} className="note-item">
+                                <span className="note-name">{note.name}</span>
+                                <span className="note-quantity">{note.quantity}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="no-notes">Aucune note</p>
+                        )}
+                        {!stats.hasAnyInvalid && formula.top_notes?.length > 0 && (
+                          <div className="notes-total">
+                            <span className="total-label">Total:</span>
+                            <span className="total-value">{stats.topTotal.toFixed(2)} ml</span>
+                            {stats.grandTotal > 0 && (
+                              <span className="total-percentage">{((stats.topTotal / stats.grandTotal) * 100).toFixed(1)}%</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
 
-                  {/* Notes de cœur */}
-                  <div className="notes-column">
-                    <h5 className="notes-title heart-notes-title">Notes de cœur</h5>
-                    {formula.heart_notes?.length > 0 ? (
-                      <ul className="notes-list">
-                        {formula.heart_notes.map((note, idx) => (
-                          <li key={note.id || idx} className="note-item">
-                            <span className="note-name">{note.name}</span>
-                            <span className="note-quantity">{note.quantity}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="no-notes">Aucune note</p>
-                    )}
-                  </div>
+                      {/* Notes de cœur */}
+                      <div className="notes-column">
+                        <h5 className="notes-title heart-notes-title">Notes de cœur</h5>
+                        {formula.heart_notes?.length > 0 ? (
+                          <ul className="notes-list">
+                            {formula.heart_notes.map((note, idx) => (
+                              <li key={note.id || idx} className="note-item">
+                                <span className="note-name">{note.name}</span>
+                                <span className="note-quantity">{note.quantity}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="no-notes">Aucune note</p>
+                        )}
+                        {!stats.hasAnyInvalid && formula.heart_notes?.length > 0 && (
+                          <div className="notes-total">
+                            <span className="total-label">Total:</span>
+                            <span className="total-value">{stats.heartTotal.toFixed(2)} ml</span>
+                            {stats.grandTotal > 0 && (
+                              <span className="total-percentage">{((stats.heartTotal / stats.grandTotal) * 100).toFixed(1)}%</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
 
-                  {/* Notes de fond */}
-                  <div className="notes-column">
-                    <h5 className="notes-title base-notes-title">Notes de fond</h5>
-                    {formula.base_notes?.length > 0 ? (
-                      <ul className="notes-list">
-                        {formula.base_notes.map((note, idx) => (
-                          <li key={note.id || idx} className="note-item">
-                            <span className="note-name">{note.name}</span>
-                            <span className="note-quantity">{note.quantity}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="no-notes">Aucune note</p>
-                    )}
-                  </div>
-                </div>
+                      {/* Notes de fond */}
+                      <div className="notes-column">
+                        <h5 className="notes-title base-notes-title">Notes de fond</h5>
+                        {formula.base_notes?.length > 0 ? (
+                          <ul className="notes-list">
+                            {formula.base_notes.map((note, idx) => (
+                              <li key={note.id || idx} className="note-item">
+                                <span className="note-name">{note.name}</span>
+                                <span className="note-quantity">{note.quantity}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="no-notes">Aucune note</p>
+                        )}
+                        {!stats.hasAnyInvalid && formula.base_notes?.length > 0 && (
+                          <div className="notes-total">
+                            <span className="total-label">Total:</span>
+                            <span className="total-value">{stats.baseTotal.toFixed(2)} ml</span>
+                            {stats.grandTotal > 0 && (
+                              <span className="total-percentage">{((stats.baseTotal / stats.grandTotal) * 100).toFixed(1)}%</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-                {/* Commentaire */}
-                <div className="formula-comment-section">
-                  <h5 className="notes-title">Commentaire</h5>
-                  <p className="formula-comment">
-                    {formula.comment || 'Aucun commentaire'}
-                  </p>
-                </div>
-              </>
+                    {/* Total général de la formule - seulement si pas d'erreurs */}
+                    {!stats.hasAnyInvalid && (
+                      <div className="formula-grand-total">
+                        <span className="grand-total-label">Total formule:</span>
+                        <span className="grand-total-value">{stats.grandTotal.toFixed(2)} ml</span>
+                      </div>
+                    )}
+
+                    {/* Avertissement si quantités invalides */}
+                    {stats.hasAnyInvalid && (
+                      <div className="formula-warning">
+                        <span className="warning-icon">⚠️</span>
+                        <span className="warning-text">
+                          Certaines notes ont une quantité qui ne correspond pas à un nombre valide: {stats.allInvalidNotes.join(', ')}. Corrigez ces valeurs pour voir les totaux et pourcentages.
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Commentaire */}
+                    <div className="formula-comment-section">
+                      <h5 className="notes-title">Commentaire</h5>
+                      <p className="formula-comment">
+                        {formula.comment || 'Aucun commentaire'}
+                      </p>
+                    </div>
+                  </>
+                )
+              })()
             ) : (
               // Mode édition
               <div className="formula-notes-grid editing">
@@ -412,6 +562,18 @@ const FormulaDetailsPage = ({ formulaId, customerId, onBack, onFormulaUpdated })
                   </div>
                 </div>
 
+                {/* Date - édition */}
+                <div className="formula-date-edit">
+                  <h5 className="notes-title">Date</h5>
+                  <input
+                    type="text"
+                    value={editingData?.date || ''}
+                    onChange={(e) => setEditingData(prev => ({ ...prev, date: e.target.value }))}
+                    placeholder="JJ/MM/AAAA"
+                    className="formula-date-input"
+                  />
+                </div>
+
                 {/* Commentaire - édition */}
                 <div className="formula-comment-edit">
                   <h5 className="notes-title">Commentaire</h5>
@@ -481,6 +643,21 @@ const FormulaDetailsPage = ({ formulaId, customerId, onBack, onFormulaUpdated })
         isOpen={showEmailModal}
         onClose={() => setShowEmailModal(false)}
         formulaReference={formula?.reference || formula?.id}
+      />
+
+      {/* Modal pour les actions */}
+      <ActionsModal
+        isOpen={showActionsModal}
+        onClose={() => setShowActionsModal(false)}
+        onSelectAction={handleActionSelect}
+      />
+
+      {/* Modal pour la commande de produits dérivés */}
+      <DerivedProductsOrderModal
+        isOpen={showDerivedProductsModal}
+        onClose={() => setShowDerivedProductsModal(false)}
+        formula={formula}
+        customer={customer}
       />
     </div>
   )
