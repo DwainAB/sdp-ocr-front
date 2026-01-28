@@ -10,12 +10,16 @@ import FormulaDetailsPage from './pages/FormulaDetailsPage/FormulaDetailsPage'
 import GroupsPage from './pages/GroupsPage/GroupsPage'
 import GroupDetailsPage from './pages/GroupDetailsPage/GroupDetailsPage'
 import TeamPage from './pages/TeamPage/TeamPage'
+import OrdersPage from './pages/OrdersPage/OrdersPage'
+import OrderDetailsPage from './pages/OrderDetailsPage/OrderDetailsPage'
+import OrderAnalysisPage from './pages/OrderAnalysisPage/OrderAnalysisPage'
 
 function App() {
   const [activeSection, setActiveSection] = useState('extraction')
   const [selectedGroupIds, setSelectedGroupIds] = useState([])
   const [selectedCustomerId, setSelectedCustomerId] = useState(null)
   const [selectedFormulaId, setSelectedFormulaId] = useState(null)
+  const [selectedOrderId, setSelectedOrderId] = useState(null)
 
   const handleSectionChange = (section) => {
     setActiveSection(section)
@@ -27,6 +31,10 @@ function App() {
     if (section !== 'clients') {
       setSelectedCustomerId(null)
       setSelectedFormulaId(null)
+    }
+    // Réinitialiser la commande sélectionnée si on change de section
+    if (section !== 'orders') {
+      setSelectedOrderId(null)
     }
   }
 
@@ -54,6 +62,14 @@ function App() {
 
   const handleBackToCustomer = () => {
     setSelectedFormulaId(null)
+  }
+
+  const handleOpenOrder = (orderId) => {
+    setSelectedOrderId(orderId)
+  }
+
+  const handleBackToOrders = () => {
+    setSelectedOrderId(null)
   }
 
   const renderCurrentPage = () => {
@@ -86,6 +102,18 @@ function App() {
           : <GroupsPage onOpenGroups={handleOpenGroups} />
       case 'analysis':
         return <div className="section-content"><div className="section-header"><h2>Analyse</h2><p>Page d'analyse en cours de développement</p></div></div>
+      case 'orders':
+        if (selectedOrderId) {
+          return (
+            <OrderDetailsPage
+              orderId={selectedOrderId}
+              onBack={handleBackToOrders}
+            />
+          )
+        }
+        return <OrdersPage onOpenOrder={handleOpenOrder} />
+      case 'orders-analysis':
+        return <OrderAnalysisPage />
       case 'team':
         return <TeamPage />
       default:

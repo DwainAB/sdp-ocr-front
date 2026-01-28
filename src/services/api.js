@@ -374,6 +374,37 @@ export const exportApi = {
 };
 
 // ============================================
+// GESTION DES COMMANDES
+// ============================================
+
+export const ordersApi = {
+  // Récupérer toutes les commandes avec pagination
+  getAll: async (page = 1, pageSize = 20, search = null, status = null) => {
+    let url = `${API_URL}/api/v1/orders/?page=${page}&size=${pageSize}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (status) url += `&status=${status}`;
+    const response = await fetch(url);
+    return handleResponse(response);
+  },
+
+  // Récupérer une commande par ID
+  getById: async (orderId) => {
+    const response = await fetch(`${API_URL}/api/v1/orders/${orderId}`);
+    return handleResponse(response);
+  },
+
+  // Mettre à jour le statut d'une commande
+  updateStatus: async (orderId, status) => {
+    const response = await fetch(`${API_URL}/api/v1/orders/${orderId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    return handleResponse(response);
+  },
+};
+
+// ============================================
 // GESTION DES RÔLES
 // ============================================
 
@@ -448,4 +479,5 @@ export default {
   ocr: ocrApi,
   export: exportApi,
   roles: rolesApi,
+  orders: ordersApi,
 };

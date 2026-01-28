@@ -6,6 +6,7 @@ import './Dashboard.css'
 const Dashboard = ({ children, activeSection, onSectionChange }) => {
   const { user, logout } = useAuth()
   const [showClientsSubmenu, setShowClientsSubmenu] = useState(false)
+  const [showOrdersSubmenu, setShowOrdersSubmenu] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
@@ -83,6 +84,47 @@ const Dashboard = ({ children, activeSection, onSectionChange }) => {
                   <div className="submenu-item-content">
                     <span className="submenu-icon">📊</span>
                     <span className="submenu-text">Analyse</span>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="nav-item-container">
+            <button
+              className={`nav-item ${activeSection === 'orders' || activeSection === 'orders-analysis' ? 'active' : ''}`}
+              onClick={() => {
+                setShowOrdersSubmenu(!showOrdersSubmenu)
+                if (!showOrdersSubmenu) {
+                  onSectionChange('orders')
+                }
+              }}
+            >
+              <div className="nav-item-content">
+                <span className="nav-icon">📦</span>
+                <span className="nav-text">Commandes</span>
+              </div>
+              <span className={`submenu-arrow ${showOrdersSubmenu ? 'open' : ''}`}>▼</span>
+            </button>
+
+            {showOrdersSubmenu && (
+              <div className="submenu">
+                <button
+                  className={`submenu-item ${activeSection === 'orders' ? 'active' : ''}`}
+                  onClick={() => onSectionChange('orders')}
+                >
+                  <div className="submenu-item-content">
+                    <span className="submenu-icon">📋</span>
+                    <span className="submenu-text">Liste des commandes</span>
+                  </div>
+                </button>
+                <button
+                  className={`submenu-item ${activeSection === 'orders-analysis' ? 'active' : ''}`}
+                  onClick={() => onSectionChange('orders-analysis')}
+                >
+                  <div className="submenu-item-content">
+                    <span className="submenu-icon">📊</span>
+                    <span className="submenu-text">Analyses</span>
                   </div>
                 </button>
               </div>
