@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../../contexts/AuthContext'
 import './CustomerDetailsPage.css'
 
 const API_URL = import.meta.env.VITE_API_URL
 
 const CustomerDetailsPage = ({ customerId, onBack, onCustomerUpdated, onOpenFormula }) => {
+  const { user } = useAuth()
   const [customer, setCustomer] = useState(null)
   const [formData, setFormData] = useState({
     first_name: '',
@@ -225,7 +227,7 @@ const CustomerDetailsPage = ({ customerId, onBack, onCustomerUpdated, onOpenForm
         <div className="section-header">
           <div>
             <button className="back-btn" onClick={onBack}>
-              ← Retour à la liste
+              ←
             </button>
           </div>
         </div>
@@ -243,7 +245,7 @@ const CustomerDetailsPage = ({ customerId, onBack, onCustomerUpdated, onOpenForm
       <div className="section-header">
         <div className="header-left">
           <button className="back-btn" onClick={onBack}>
-            ← Retour à la liste
+            ←
           </button>
           <div className="header-title">
             <h2>{isEditing ? 'Modifier le client' : 'Détails du client'}</h2>
@@ -251,7 +253,7 @@ const CustomerDetailsPage = ({ customerId, onBack, onCustomerUpdated, onOpenForm
           </div>
         </div>
         <div className="header-actions">
-          {!isEditing && (
+          {!isEditing && user?.role?.customers_edit && (
             <button
               className="action-btn edit-btn"
               onClick={() => setIsEditing(true)}

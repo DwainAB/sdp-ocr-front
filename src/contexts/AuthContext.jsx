@@ -27,11 +27,8 @@ export const AuthProvider = ({ children }) => {
 
   const getUserFromDatabase = async (email) => {
     try {
-      const data = await authApi.getUserByEmail(email)
-      const users = data.users || data || []
-      const user = users.find(
-          u => u.email?.toLowerCase() === email.toLowerCase()
-      )
+      // Le nouvel endpoint renvoie directement l'utilisateur avec son rôle
+      const user = await authApi.getUserByEmail(email)
       return user || null
     } catch {
       return null

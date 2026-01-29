@@ -6,6 +6,9 @@ const OrderDetailsPage = ({ orderId, onBack }) => {
   const [order, setOrder] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [pendingStatus, setPendingStatus] = useState(null)
 
   const statusOptions = [
     { value: 'PENDING', label: 'En attente', color: '#eab308' },
@@ -51,6 +54,42 @@ const OrderDetailsPage = ({ orderId, onBack }) => {
     return statusOptions.find(s => s.value === status) || { label: status, color: '#6b7280' }
   }
 
+  const getStatusActionInfo = (newStatus) => {
+    const statusActions = {
+      IN_PROGRESS: { label: 'Préparer cette commande', message: 'Voulez-vous préparer cette commande ?' },
+      COMPLETED: { label: 'Marquer comme prête', message: 'Voulez-vous marquer cette commande comme prête ?' },
+      CANCELLED: { label: 'Annuler la commande', message: 'Voulez-vous vraiment annuler cette commande ?' },
+    }
+    return statusActions[newStatus] || { label: newStatus, message: `Voulez-vous changer le statut en ${newStatus} ?` }
+  }
+
+  const openConfirmModal = (newStatus) => {
+    setPendingStatus(newStatus)
+    setShowConfirmModal(true)
+  }
+
+  const closeConfirmModal = () => {
+    setShowConfirmModal(false)
+    setPendingStatus(null)
+  }
+
+  const confirmStatusUpdate = async () => {
+    if (!pendingStatus) return
+
+    setIsUpdating(true)
+    setError('')
+    try {
+      await ordersApi.update(orderId, { status: pendingStatus })
+      await fetchOrderDetails(orderId)
+      closeConfirmModal()
+    } catch (error) {
+      console.error('Erreur:', error)
+      setError('Erreur lors de la mise à jour du statut')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="section-content">
@@ -70,7 +109,7 @@ const OrderDetailsPage = ({ orderId, onBack }) => {
         <div className="section-header">
           <div>
             <button className="back-btn" onClick={onBack}>
-              Retour à la liste
+                ←
             </button>
           </div>
         </div>
@@ -90,7 +129,7 @@ const OrderDetailsPage = ({ orderId, onBack }) => {
       <div className="section-header">
         <div className="header-left">
           <button className="back-btn" onClick={onBack}>
-            Retour à la liste
+            ←
           </button>
           <div className="header-title">
             <h2>Détails de la commande #{order?.id}</h2>
@@ -106,6 +145,36 @@ const OrderDetailsPage = ({ orderId, onBack }) => {
           </div>
         </div>
         <div className="header-actions">
+          {order?.status === 'PENDING' && (
+            <button
+              className="action-btn status-btn in-progress-btn"
+              onClick={() => openConfirmModal('IN_PROGRESS')}
+              disabled={isUpdating}
+            >
+              <span className="btn-icon">▶</span>
+              Préparer cette commande
+            </button>
+          )}
+          {order?.status === 'IN_PROGRESS' && (
+            <button
+              className="action-btn status-btn ready-btn"
+              onClick={() => openConfirmModal('COMPLETED')}
+              disabled={isUpdating}
+            >
+              <span className="btn-icon">✓</span>
+              Marquer comme prête
+            </button>
+          )}
+          {(order?.status === 'PENDING' || order?.status === 'IN_PROGRESS') && (
+            <button
+              className="action-btn status-btn cancel-btn"
+              onClick={() => openConfirmModal('CANCELLED')}
+              disabled={isUpdating}
+            >
+              <span className="btn-icon">✕</span>
+              Annuler
+            </button>
+          )}
           <button className="action-btn refresh-btn" onClick={() => fetchOrderDetails(orderId)}>
             <span className="btn-icon">↻</span>
             <span className="btn-tooltip">Actualiser</span>
@@ -268,6 +337,37 @@ const OrderDetailsPage = ({ orderId, onBack }) => {
           </div>
         )}
       </div>
+
+      {/* Modal de confirmation */}
+      {showConfirmModal && pendingStatus && (
+        <div className="modal-overlay" onClick={closeConfirmModal}>
+          <div className="modal-content confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{getStatusActionInfo(pendingStatus).label}</h3>
+              <button className="modal-close-btn" onClick={closeConfirmModal}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p>{getStatusActionInfo(pendingStatus).message}</p>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={closeConfirmModal}
+                disabled={isUpdating}
+              >
+                Annuler
+              </button>
+              <button
+                className={`btn btn-primary ${pendingStatus === 'CANCELLED' ? 'btn-danger' : ''}`}
+                onClick={confirmStatusUpdate}
+                disabled={isUpdating}
+              >
+                {isUpdating ? 'En cours...' : 'Confirmer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,17 +1,54 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { useAuth } from '../../contexts/AuthContext'
+import { useToast } from '../../components/UI/Toast'
+import { quotasApi } from '../../services/api'
+import * as pdfjsLib from 'pdfjs-dist'
 import './ExtractionPage.css'
 
+// Configuration du worker PDF.js (copié dans /public)
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+
 const API_URL = import.meta.env.VITE_API_URL
+const SECONDS_PER_PAGE = 3.5
 
 const ExtractionPage = () => {
+  const { user } = useAuth()
+  const { showQuotaError, showSuccess } = useToast()
   const [selectedFile, setSelectedFile] = useState(null)
+  const [pageCount, setPageCount] = useState(0)
   const [isDragOver, setIsDragOver] = useState(false)
   const [isExtracting, setIsExtracting] = useState(false)
-  const [extractionResult, setExtractionResult] = useState(null)
+  const [extractionComplete, setExtractionComplete] = useState(false)
   const [error, setError] = useState(null)
+  const [progress, setProgress] = useState(0)
+  const [estimatedTime, setEstimatedTime] = useState(0)
+  const [elapsedTime, setElapsedTime] = useState(0)
   const fileInputRef = useRef(null)
+  const progressIntervalRef = useRef(null)
+  const startTimeRef = useRef(null)
 
-  const handleFileSelect = (file) => {
+  // Nettoyer l'intervalle lors du démontage
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current)
+      }
+    }
+  }, [])
+
+  // Fonction pour compter les pages du PDF
+  const countPdfPages = async (file) => {
+    try {
+      const arrayBuffer = await file.arrayBuffer()
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+      return pdf.numPages
+    } catch (error) {
+      console.error('Erreur lors du comptage des pages:', error)
+      return 0
+    }
+  }
+
+  const handleFileSelect = async (file) => {
     if (!file) return
 
     if (file.type !== 'application/pdf') {
@@ -25,9 +62,19 @@ const ExtractionPage = () => {
       return
     }
 
+    // Compter les pages du PDF
+    const pages = await countPdfPages(file)
+    setPageCount(pages)
+
+    // Calculer le temps estimé
+    const estimated = Math.ceil(pages * SECONDS_PER_PAGE)
+    setEstimatedTime(estimated)
+
     setSelectedFile(file)
-    setExtractionResult(null)
+    setExtractionComplete(false)
     setError(null)
+    setProgress(0)
+    setElapsedTime(0)
   }
 
   const handleFileInputChange = (event) => {
@@ -58,10 +105,43 @@ const ExtractionPage = () => {
 
   const handleRemoveFile = () => {
     setSelectedFile(null)
-    setExtractionResult(null)
+    setPageCount(0)
+    setExtractionComplete(false)
     setError(null)
+    setProgress(0)
+    setElapsedTime(0)
+    setEstimatedTime(0)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
+    }
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current)
+    }
+  }
+
+  const startProgressAnimation = () => {
+    startTimeRef.current = Date.now()
+    const totalDuration = estimatedTime * 1000 // en millisecondes
+
+    progressIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTimeRef.current
+      const elapsedSeconds = Math.floor(elapsed / 1000)
+      setElapsedTime(elapsedSeconds)
+
+      // Progression jusqu'à 95% basée sur le temps estimé
+      // On garde 5% pour la fin réelle de l'extraction
+      const calculatedProgress = Math.min((elapsed / totalDuration) * 95, 95)
+      setProgress(calculatedProgress)
+    }, 100)
+  }
+
+  const stopProgressAnimation = (success = true) => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current)
+      progressIntervalRef.current = null
+    }
+    if (success) {
+      setProgress(100)
     }
   }
 
@@ -70,8 +150,29 @@ const ExtractionPage = () => {
 
     setIsExtracting(true)
     setError(null)
+    setProgress(0)
+    setElapsedTime(0)
+
+    // Démarrer l'animation de progression
+    startProgressAnimation()
 
     try {
+      // Vérifier et consommer le quota PDF avant l'extraction
+      if (user?.id) {
+        try {
+          await quotasApi.consumePdfQuota(user.id)
+        } catch (quotaError) {
+          if (quotaError.status === 429) {
+            showQuotaError(quotaError.detail || { type: 'pdf' })
+            stopProgressAnimation(false)
+            setIsExtracting(false)
+            setProgress(0)
+            return
+          }
+          throw quotaError
+        }
+      }
+
       const formData = new FormData()
       formData.append('file', selectedFile)
 
@@ -87,42 +188,20 @@ const ExtractionPage = () => {
       const result = await response.json()
 
       if (result.success) {
-        setExtractionResult(result)
+        stopProgressAnimation(true)
+        setExtractionComplete(true)
+        showSuccess('Extraction terminée', `${pageCount} pages traitées avec succès`)
       } else {
         throw new Error('Échec de l\'extraction des données')
       }
 
     } catch (error) {
       console.error('Erreur lors de l\'extraction:', error)
+      stopProgressAnimation(false)
       setError(error.message)
+      setProgress(0)
     } finally {
       setIsExtracting(false)
-    }
-  }
-
-  const handleDownloadCSV = async () => {
-    if (!extractionResult?.download_url) return
-
-    try {
-      const response = await fetch(extractionResult.download_url)
-
-      if (!response.ok) {
-        throw new Error(`Erreur de téléchargement: ${response.status}`)
-      }
-
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = extractionResult.filename
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      window.URL.revokeObjectURL(url)
-
-    } catch (error) {
-      console.error('Erreur lors du téléchargement:', error)
-      setError('Erreur lors du téléchargement du fichier CSV')
     }
   }
 
@@ -132,6 +211,15 @@ const ExtractionPage = () => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  const formatTime = (seconds) => {
+    if (seconds < 60) {
+      return `${seconds}s`
+    }
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return `${minutes}min ${remainingSeconds}s`
   }
 
   return (
@@ -169,74 +257,93 @@ const ExtractionPage = () => {
               <div className="file-details">
                 <h3>{selectedFile.name}</h3>
                 <p>Taille: {formatFileSize(selectedFile.size)}</p>
-                <p>Type: {selectedFile.type}</p>
+                <p>Pages: {pageCount}</p>
+                {estimatedTime > 0 && !isExtracting && !extractionComplete && (
+                  <p className="estimated-time">
+                    Temps estimé: ~{formatTime(estimatedTime)}
+                  </p>
+                )}
               </div>
             </div>
 
-            <div className="file-actions">
-              <button
-                className="remove-btn"
-                onClick={handleRemoveFile}
-                disabled={isExtracting}
-              >
-                Supprimer
-              </button>
-              <button
-                className="extract-btn"
-                onClick={handleExtractData}
-                disabled={isExtracting}
-              >
-                {isExtracting ? (
-                  <span className="loading-spinner">
-                    <span className="spinner"></span>
-                    Extraction...
-                  </span>
-                ) : (
-                  'Extraire'
-                )}
-              </button>
-            </div>
+            {!isExtracting && !extractionComplete && (
+              <div className="file-actions">
+                <button
+                  className="remove-btn"
+                  onClick={handleRemoveFile}
+                >
+                  Supprimer
+                </button>
+                <button
+                  className="extract-btn"
+                  onClick={handleExtractData}
+                >
+                  Extraire
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
 
+      {/* Barre de progression */}
+      {isExtracting && (
+        <div className="progress-section">
+          <div className="progress-header">
+            <span className="progress-title">Extraction en cours...</span>
+            <span className="progress-percentage">{Math.round(progress)}%</span>
+          </div>
+          <div className="progress-bar-container">
+            <div
+              className="progress-bar"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="progress-info">
+            <span className="elapsed-time">
+              Temps écoulé: {formatTime(elapsedTime)}
+            </span>
+            <span className="remaining-time">
+              Temps restant: ~{formatTime(Math.max(0, estimatedTime - elapsedTime))}
+            </span>
+          </div>
+          <p className="progress-hint">
+            Traitement de {pageCount} pages...
+          </p>
+          <div className="progress-warning">
+            <span className="warning-icon">⚠</span>
+            <span>Veuillez ne pas quitter cette page pendant l'extraction</span>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="file-status">
           <div className="status-indicator error">
-            ❌ {error}
+            {error}
           </div>
         </div>
       )}
 
-      {selectedFile && !error && !extractionResult && (
+      {selectedFile && !error && !extractionComplete && !isExtracting && (
         <div className="file-status">
           <div className="status-indicator success">
-            ✅ Fichier prêt pour le traitement
+            Fichier prêt pour le traitement
           </div>
         </div>
       )}
 
-      {extractionResult && (
-        <div className="extraction-results">
-          <div className="results-header">
-            <h3>📊 Résultats de l'extraction</h3>
-          </div>
-          <div className="results-content">
-            <div className="result-item">
-              <span className="label">Fichier CSV généré :</span>
-              <span className="value">{extractionResult.filename}</span>
-            </div>
-            <div className="result-item">
-              <span className="label">Studio Parfums trouvés :</span>
-              <span className="value">{extractionResult.total_studio_parfums_found}</span>
-            </div>
-            <button
-              className="download-btn"
-              onClick={handleDownloadCSV}
-            >
-              📥 Télécharger le CSV
-            </button>
-          </div>
+      {extractionComplete && (
+        <div className="extraction-complete">
+          <div className="complete-icon">✓</div>
+          <h3>Extraction terminée avec succès</h3>
+          <p>{pageCount} pages ont été traitées</p>
+          <button
+            className="new-extraction-btn"
+            onClick={handleRemoveFile}
+          >
+            Nouvelle extraction
+          </button>
         </div>
       )}
     </div>

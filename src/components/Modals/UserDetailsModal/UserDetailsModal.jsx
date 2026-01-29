@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../../../contexts/AuthContext'
 import { usersApi } from '../../../services/api'
 import './UserDetailsModal.css'
 
 const UserDetailsModal = ({ isOpen, onClose, onUserUpdated, user, onViewLogs }) => {
+  const { user: currentUser } = useAuth()
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -119,7 +121,7 @@ const UserDetailsModal = ({ isOpen, onClose, onUserUpdated, user, onViewLogs }) 
             <div className="user-id">ID: {user?.id}</div>
           </div>
           <div className="header-actions">
-            {!isEditing && (
+            {!isEditing && currentUser?.role?.full_access && (
               <button
                 className="edit-btn"
                 onClick={() => setIsEditing(true)}
@@ -188,14 +190,16 @@ const UserDetailsModal = ({ isOpen, onClose, onUserUpdated, user, onViewLogs }) 
                 </div>
               </div>
 
-              <div className="simple-action-button">
-                <button
-                  className="log-btn"
-                  onClick={() => onViewLogs && onViewLogs(user)}
-                >
-                  📋 Historique de connexion
-                </button>
-              </div>
+              {currentUser?.role?.full_access && (
+                <div className="simple-action-button">
+                  <button
+                    className="log-btn"
+                    onClick={() => onViewLogs && onViewLogs(user)}
+                  >
+                    📋 Historique de connexion
+                  </button>
+                </div>
+              )}
 
             </div>
           ) : (

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../../contexts/AuthContext'
 import { formatLastLogin } from '../../utils/timeUtils'
 import AddUserModal from '../../components/Modals/AddUserModal/AddUserModal'
 import UserLoginHistoryModal from '../../components/Modals/UserLoginHistoryModal/UserLoginHistoryModal'
@@ -8,6 +9,7 @@ import { usersApi } from '../../services/api'
 import './TeamPage.css'
 
 const TeamPage = () => {
+  const { user } = useAuth()
   const [teamMembers, setTeamMembers] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -148,14 +150,18 @@ const TeamPage = () => {
           <p>Gestion des membres de l'équipe ({filteredMembers.length} membre{filteredMembers.length !== 1 ? 's' : ''} sur {teamMembers.length})</p>
         </div>
         <div className="header-actions">
-          <button className="action-btn roles-btn" onClick={() => setShowRolesModal(true)}>
-            <span className="btn-icon">⚙</span>
-            <span className="btn-tooltip">Gestion des rôles</span>
-          </button>
-          <button className="action-btn add-btn" onClick={handleAddMember}>
-            <span className="btn-icon">+</span>
-            <span className="btn-tooltip">Ajouter un membre</span>
-          </button>
+          {user?.role?.full_access && (
+            <>
+              <button className="action-btn roles-btn" onClick={() => setShowRolesModal(true)}>
+                <span className="btn-icon">⚙</span>
+                <span className="btn-tooltip">Gestion des rôles</span>
+              </button>
+              <button className="action-btn add-btn" onClick={handleAddMember}>
+                <span className="btn-icon">+</span>
+                <span className="btn-tooltip">Ajouter un membre</span>
+              </button>
+            </>
+          )}
           <button className="action-btn refresh-btn" onClick={fetchTeamMembers}>
             <span className="btn-icon">↻</span>
             <span className="btn-tooltip">Actualiser</span>

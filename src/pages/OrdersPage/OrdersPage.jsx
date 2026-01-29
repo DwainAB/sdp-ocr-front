@@ -8,7 +8,7 @@ const OrdersPage = ({ onOpenOrder }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
-  const [selectedDate, setSelectedDate] = useState('')
+  const [selectedPeriod, setSelectedPeriod] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalOrders, setTotalOrders] = useState(0)
   const [pageSize] = useState(20)
@@ -16,7 +16,6 @@ const OrdersPage = ({ onOpenOrder }) => {
 
   const statusOptions = [
     { value: 'PENDING', label: 'En attente', color: '#eab308' },
-    { value: 'CONFIRMED', label: 'Confirmée', color: '#3b82f6' },
     { value: 'IN_PROGRESS', label: 'En cours', color: '#8b5cf6' },
     { value: 'COMPLETED', label: 'Terminée', color: '#10b981' },
     { value: 'CANCELLED', label: 'Annulée', color: '#ef4444' },
@@ -26,19 +25,11 @@ const OrdersPage = ({ onOpenOrder }) => {
     fetchOrders()
   }, [currentPage, selectedStatus])
 
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setCurrentPage(1)
-      fetchOrders(1)
-    }, 500)
-    return () => clearTimeout(timeoutId)
-  }, [searchTerm])
-
   const fetchOrders = async (page = currentPage) => {
     setIsLoading(true)
     setError(null)
     try {
-      const data = await ordersApi.getAll(page, pageSize, searchTerm || null, selectedStatus || null)
+      const data = await ordersApi.getAll(page, pageSize, null, selectedStatus || null)
       setOrders(data.orders || [])
       setTotalOrders(data.total || 0)
       setCurrentPage(data.page || page)
@@ -52,20 +43,50 @@ const OrdersPage = ({ onOpenOrder }) => {
     }
   }
 
-  // Filtrage côté client pour la date
+  // Filtrage côté client pour la recherche et la période
   useEffect(() => {
     let filtered = orders
 
-    if (selectedDate) {
+    // Filtrage par nom/prénom
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase().trim()
       filtered = filtered.filter(order => {
-        if (!order.created_at) return false
-        const orderDate = new Date(order.created_at).toISOString().split('T')[0]
-        return orderDate === selectedDate
+        const firstName = (order.customer?.first_name || '').toLowerCase()
+        const lastName = (order.customer?.last_name || '').toLowerCase()
+        return firstName.startsWith(search) || lastName.startsWith(search)
+      })
+    }
+
+    // Filtrage par période
+    if (selectedPeriod) {
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+      filtered = filtered.filter(order => {
+        if (!order.date) return false
+        const orderDate = new Date(order.date)
+
+        switch (selectedPeriod) {
+          case 'today':
+            return orderDate >= today
+          case 'week': {
+            const oneWeekAgo = new Date(today)
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+            return orderDate >= oneWeekAgo
+          }
+          case 'month': {
+            const oneMonthAgo = new Date(today)
+            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+            return orderDate >= oneMonthAgo
+          }
+          default:
+            return true
+        }
       })
     }
 
     setFilteredOrders(filtered)
-  }, [orders, selectedDate])
+  }, [orders, searchTerm, selectedPeriod])
 
   const formatDate = (dateString) => {
     if (!dateString) return '-'
@@ -84,7 +105,7 @@ const OrdersPage = ({ onOpenOrder }) => {
   const resetFilters = () => {
     setSearchTerm('')
     setSelectedStatus('')
-    setSelectedDate('')
+    setSelectedPeriod('')
     setCurrentPage(1)
     setTimeout(() => fetchOrders(1), 100)
   }
@@ -151,12 +172,16 @@ const OrdersPage = ({ onOpenOrder }) => {
               ))}
             </select>
 
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="filter-select date-input"
-            />
+            <select
+              value={selectedPeriod}
+              onChange={(e) => setSelectedPeriod(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">Toutes les commandes</option>
+              <option value="today">Aujourd'hui</option>
+              <option value="week">Il y a 1 semaine</option>
+              <option value="month">Il y a 1 mois</option>
+            </select>
 
             <button className="reset-filters-btn" onClick={resetFilters}>
               Réinitialiser

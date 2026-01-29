@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react'
 import ConfirmationModal from '../ConfirmationModal/ConfirmationModal'
+import { quotasApi } from '../../../services/api'
+import { useAuth } from '../../../contexts/AuthContext'
+import { useToast } from '../../UI/Toast'
 import './GroupMembersModal.css'
 
 const API_URL = import.meta.env.VITE_API_URL
 
 const GroupMembersModal = ({ isOpen, onClose, group }) => {
+  const { user } = useAuth()
+  const { showQuotaError } = useToast()
   const [members, setMembers] = useState([])
   const [isLoadingMembers, setIsLoadingMembers] = useState(false)
   const [error, setError] = useState(null)
@@ -163,21 +168,36 @@ const GroupMembersModal = ({ isOpen, onClose, group }) => {
 
     if (selectedMembersData.length === 0) return
 
-    const exportData = {
-      data: selectedMembersData.map(member => ({
-        reference: member.reference || '',
-        first_name: member.first_name || '',
-        last_name: member.last_name || '',
-        email: member.email || '',
-        phone: member.phone || '',
-        job: member.job || '',
-        city: member.city || '',
-        country: member.country || ''
-      }))
-    }
-
     setIsExporting(true)
     try {
+      // Vérifier et consommer le quota CSV avant l'export
+      if (user?.id) {
+        try {
+          await quotasApi.consumeCsvQuota(user.id)
+        } catch (quotaError) {
+          if (quotaError.status === 429) {
+            showQuotaError(quotaError.detail || { type: 'csv' })
+            setShowExportModal(false)
+            setIsExporting(false)
+            return
+          }
+          throw quotaError
+        }
+      }
+
+      const exportData = {
+        data: selectedMembersData.map(member => ({
+          reference: member.reference || '',
+          first_name: member.first_name || '',
+          last_name: member.last_name || '',
+          email: member.email || '',
+          phone: member.phone || '',
+          job: member.job || '',
+          city: member.city || '',
+          country: member.country || ''
+        }))
+      }
+
       const response = await fetch(`${API_URL}/api/v1/export/generate-csv`, {
         method: 'POST',
         headers: {

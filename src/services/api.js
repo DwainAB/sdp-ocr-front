@@ -28,9 +28,9 @@ const handleBlobResponse = async (response) => {
 // ============================================
 
 export const authApi = {
-  // Récupérer un utilisateur par email
+  // Récupérer un utilisateur par email (avec son rôle et permissions)
   getUserByEmail: async (email) => {
-    const response = await fetch(`${API_URL}/api/v1/users?email=${email}`);
+    const response = await fetch(`${API_URL}/api/v1/users/by-email?email=${email}`);
     return handleResponse(response);
   },
 
@@ -402,6 +402,60 @@ export const ordersApi = {
     });
     return handleResponse(response);
   },
+
+  // Mettre à jour une commande (PUT)
+  update: async (orderId, orderData) => {
+    const response = await fetch(`${API_URL}/api/v1/orders/${orderId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderData),
+    });
+    return handleResponse(response);
+  },
+};
+
+// ============================================
+// GESTION DES QUOTAS
+// ============================================
+
+export const quotasApi = {
+  // Récupérer les quotas d'un utilisateur
+  getUserQuotas: async (userId) => {
+    const response = await fetch(`${API_URL}/api/v1/users/${userId}/quotas`);
+    return handleResponse(response);
+  },
+
+  // Consommer un quota CSV
+  consumeCsvQuota: async (userId) => {
+    const response = await fetch(`${API_URL}/api/v1/users/${userId}/quotas/csv/consume`, {
+      method: 'POST',
+    });
+    // Gérer spécifiquement l'erreur 429
+    if (response.status === 429) {
+      const error = await response.json();
+      const quotaError = new Error(error.detail?.message || 'Quota CSV dépassé');
+      quotaError.status = 429;
+      quotaError.detail = error.detail;
+      throw quotaError;
+    }
+    return handleResponse(response);
+  },
+
+  // Consommer un quota PDF
+  consumePdfQuota: async (userId) => {
+    const response = await fetch(`${API_URL}/api/v1/users/${userId}/quotas/pdf/consume`, {
+      method: 'POST',
+    });
+    // Gérer spécifiquement l'erreur 429
+    if (response.status === 429) {
+      const error = await response.json();
+      const quotaError = new Error(error.detail?.message || 'Quota PDF dépassé');
+      quotaError.status = 429;
+      quotaError.detail = error.detail;
+      throw quotaError;
+    }
+    return handleResponse(response);
+  },
 };
 
 // ============================================
@@ -480,4 +534,5 @@ export default {
   export: exportApi,
   roles: rolesApi,
   orders: ordersApi,
+  quotas: quotasApi,
 };

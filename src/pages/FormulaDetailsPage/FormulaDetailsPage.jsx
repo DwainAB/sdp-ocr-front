@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../../contexts/AuthContext'
 import EmailTypeModal from '../../components/Modals/EmailTypeModal/EmailTypeModal'
 import ActionsModal from '../../components/Modals/ActionsModal/ActionsModal'
 import DerivedProductsOrderModal from '../../components/Modals/DerivedProductsOrderModal/DerivedProductsOrderModal'
@@ -7,6 +8,7 @@ import './FormulaDetailsPage.css'
 const API_URL = import.meta.env.VITE_API_URL
 
 const FormulaDetailsPage = ({ formulaId, customerId, onBack, onFormulaUpdated }) => {
+  const { user } = useAuth()
   const [formula, setFormula] = useState(null)
   const [customer, setCustomer] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -263,24 +265,30 @@ const FormulaDetailsPage = ({ formulaId, customerId, onBack, onFormulaUpdated })
         <div className="header-actions">
           {!isEditing && formula && (
             <>
-              <button
-                className="action-btn add-btn"
-                onClick={() => setShowActionsModal(true)}
-              >
-                <span className="btn-icon">+</span>
-                <span className="btn-tooltip">Actions</span>
-              </button>
-              <button className="action-btn edit-btn" onClick={handleEditFormula}>
-                <span className="btn-icon">✏️</span>
-                <span className="btn-tooltip">Modifier</span>
-              </button>
-              <button
-                className="action-btn email-btn"
-                onClick={() => setShowEmailModal(true)}
-              >
-                <span className="btn-icon">✉️</span>
-                <span className="btn-tooltip">Envoyer par mail</span>
-              </button>
+              {user?.role?.formula_edit && (
+                <>
+                  <button
+                    className="action-btn add-btn"
+                    onClick={() => setShowActionsModal(true)}
+                  >
+                    <span className="btn-icon">+</span>
+                    <span className="btn-tooltip">Actions</span>
+                  </button>
+                  <button className="action-btn edit-btn" onClick={handleEditFormula}>
+                    <span className="btn-icon">✏️</span>
+                    <span className="btn-tooltip">Modifier</span>
+                  </button>
+                </>
+              )}
+              {user?.role?.email_sending && (
+                <button
+                  className="action-btn email-btn"
+                  onClick={() => setShowEmailModal(true)}
+                >
+                  <span className="btn-icon">✉️</span>
+                  <span className="btn-tooltip">Envoyer par mail</span>
+                </button>
+              )}
             </>
           )}
           <button className="action-btn refresh-btn" onClick={() => fetchFormulaDetails(formulaId)}>

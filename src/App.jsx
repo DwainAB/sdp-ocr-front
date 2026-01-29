@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { AuthProvider } from './contexts/AuthContext'
+import { ToastProvider } from './components/UI/Toast'
 import AuthGuard from './components/Auth/AuthGuard'
 import Dashboard from './components/Layout/Dashboard'
 import ExtractionPage from './pages/ExtractionPage/ExtractionPage'
@@ -124,14 +125,16 @@ function App() {
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
       <AuthProvider>
-        <AuthGuard>
-          <Dashboard
-            activeSection={activeSection}
-            onSectionChange={handleSectionChange}
-          >
-            {renderCurrentPage()}
-          </Dashboard>
-        </AuthGuard>
+        <ToastProvider>
+          <AuthGuard>
+            <Dashboard
+              activeSection={activeSection}
+              onSectionChange={handleSectionChange}
+            >
+              {renderCurrentPage()}
+            </Dashboard>
+          </AuthGuard>
+        </ToastProvider>
       </AuthProvider>
     </GoogleOAuthProvider>
   )

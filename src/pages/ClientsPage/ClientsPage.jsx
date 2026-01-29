@@ -2,12 +2,16 @@ import { useState, useEffect } from 'react'
 import ConfirmationModal from '../../components/Modals/ConfirmationModal/ConfirmationModal'
 import AddToGroupModal from '../../components/Modals/AddToGroupModal/AddToGroupModal'
 import CustomerReviewsPage from '../CustomerReviewsPage/CustomerReviewsPage'
-import { customersApi, customerReviewsApi, exportApi } from '../../services/api'
+import { customersApi, customerReviewsApi, exportApi, quotasApi } from '../../services/api'
+import { useAuth } from '../../contexts/AuthContext'
+import { useToast } from '../../components/UI/Toast'
 import './ClientsPage.css'
 
 const API_URL = import.meta.env.VITE_API_URL
 
 const ClientsPage = ({ onOpenCustomer }) => {
+  const { user } = useAuth()
+  const { showQuotaError } = useToast()
   const [clients, setClients] = useState([])
   const [filteredClients, setFilteredClients] = useState([])
   const [isLoadingClients, setIsLoadingClients] = useState(false)
@@ -312,21 +316,36 @@ const ClientsPage = ({ onOpenCustomer }) => {
 
     if (selectedClientsData.length === 0) return
 
-    const exportData = {
-      data: selectedClientsData.map(client => ({
-        reference: client.reference || '',
-        first_name: client.first_name || '',
-        last_name: client.last_name || '',
-        email: client.email || '',
-        phone: client.phone || '',
-        job: client.job || '',
-        city: client.city || '',
-        country: client.country || ''
-      }))
-    }
-
     setIsExporting(true)
     try {
+      // Vérifier et consommer le quota CSV avant l'export
+      if (user?.id) {
+        try {
+          await quotasApi.consumeCsvQuota(user.id)
+        } catch (quotaError) {
+          if (quotaError.status === 429) {
+            showQuotaError(quotaError.detail || { type: 'csv' })
+            setShowExportModal(false)
+            setIsExporting(false)
+            return
+          }
+          throw quotaError
+        }
+      }
+
+      const exportData = {
+        data: selectedClientsData.map(client => ({
+          reference: client.reference || '',
+          first_name: client.first_name || '',
+          last_name: client.last_name || '',
+          email: client.email || '',
+          phone: client.phone || '',
+          job: client.job || '',
+          city: client.city || '',
+          country: client.country || ''
+        }))
+      }
+
       const response = await fetch(`${API_URL}/api/v1/export/generate-csv`, {
         method: 'POST',
         headers: {
@@ -384,8 +403,8 @@ const ClientsPage = ({ onOpenCustomer }) => {
     alert(`${clientIds.length} client${clientIds.length > 1 ? 's' : ''} ajouté${clientIds.length > 1 ? 's' : ''} au groupe "${group.name}" avec succès !`)
   }
 
-  // Si on affiche la vue de validation, afficher seulement celle-ci
-  if (showReviewsView) {
+  // Si on affiche la vue de validation, afficher seulement celle-ci (si l'utilisateur a accès)
+  if (showReviewsView && user?.role?.customers_review_access) {
     return <CustomerReviewsPage onClose={handleCloseReviewsView} />
   }
 
@@ -415,16 +434,18 @@ const ClientsPage = ({ onOpenCustomer }) => {
             </div>
           )}
           <div className="primary-actions">
-            {pendingReviewsCount > 0 && (
+            {user?.role?.customers_review_access && pendingReviewsCount > 0 && (
               <button className="action-btn warning-btn" onClick={handleWarningClick}>
                 <span className="btn-icon">!</span>
                 <span className="btn-tooltip">Clients en attente ({pendingReviewsCount})</span>
               </button>
             )}
-            <button className="action-btn add-btn" onClick={handleAddClient}>
-              <span className="btn-icon">+</span>
-              <span className="btn-tooltip">Ajouter un client</span>
-            </button>
+            {user?.role?.customers_edit && (
+              <button className="action-btn add-btn" onClick={handleAddClient}>
+                <span className="btn-icon">+</span>
+                <span className="btn-tooltip">Ajouter un client</span>
+              </button>
+            )}
             <button className="action-btn refresh-btn" onClick={() => {
               fetchClients()
               fetchPendingReviewsCount()
