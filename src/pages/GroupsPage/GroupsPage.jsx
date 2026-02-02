@@ -18,6 +18,10 @@ const GroupsPage = ({ onOpenGroups }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [filteredGroups, setFilteredGroups] = useState([])
   const [isDeletingGroup, setIsDeletingGroup] = useState(false)
+  const [showMergeModal, setShowMergeModal] = useState(false)
+  const [mergeGroupName, setMergeGroupName] = useState('')
+  const [mergeGroupDescription, setMergeGroupDescription] = useState('')
+  const [isMerging, setIsMerging] = useState(false)
 
   useEffect(() => {
     fetchGroups()
@@ -38,37 +42,15 @@ const GroupsPage = ({ onOpenGroups }) => {
 
   const fetchGroupMemberCount = async (groupId) => {
     try {
-      // Récupérer tous les clients
-      const response = await fetch(`${API_URL}/api/v1/customers/`)
+      const response = await fetch(`${API_URL}/api/v1/groups/customers?group_ids=${groupId}`)
 
       if (!response.ok) {
         return 0
       }
 
       const data = await response.json()
-      const allClients = data.customers || []
-      let memberCount = 0
-
-      // Pour chaque client, vérifier s'il appartient au groupe
-      for (const client of allClients) {
-        try {
-          const groupResponse = await fetch(`${API_URL}/api/v1/groups/customer/${client.id}`)
-
-          if (groupResponse.ok) {
-            const clientGroups = await groupResponse.json()
-            // Vérifier si le client appartient au groupe
-            const belongsToGroup = clientGroups.groups && clientGroups.groups.some(g => g.id === groupId)
-
-            if (belongsToGroup) {
-              memberCount++
-            }
-          }
-        } catch (clientError) {
-          // Ignorer les erreurs individuelles
-        }
-      }
-
-      return memberCount
+      const members = data.customers || []
+      return members.length
     } catch (error) {
       console.warn('Erreur lors du comptage des membres:', error)
       return 0
@@ -87,24 +69,30 @@ const GroupsPage = ({ onOpenGroups }) => {
       const data = await response.json()
       const groupsList = data.groups || data || []
 
-      // Calculer le nombre de membres pour chaque groupe
-      const groupsWithMemberCount = await Promise.all(
-        groupsList.map(async (group) => {
-          const memberCount = await fetchGroupMemberCount(group.id)
-          return {
-            ...group,
-            member_count: memberCount
-          }
-        })
-      )
-
-      setGroups(groupsWithMemberCount)
+      // Afficher les groupes immédiatement avec member_count à 0
+      const groupsWithDefaultCount = groupsList.map(group => ({
+        ...group,
+        member_count: group.member_count || 0
+      }))
+      setGroups(groupsWithDefaultCount)
       setError(null)
+      setIsLoadingGroups(false)
+
+      // Puis mettre à jour le comptage en arrière-plan
+      for (const group of groupsList) {
+        try {
+          const memberCount = await fetchGroupMemberCount(group.id)
+          setGroups(prev => prev.map(g =>
+            g.id === group.id ? { ...g, member_count: memberCount } : g
+          ))
+        } catch (err) {
+          // Ignorer les erreurs de comptage individuelles
+        }
+      }
     } catch (error) {
       console.error('Erreur lors du chargement des groupes:', error)
       setError('Erreur lors du chargement des groupes')
       setGroups([])
-    } finally {
       setIsLoadingGroups(false)
     }
   }
@@ -206,6 +194,49 @@ const GroupsPage = ({ onOpenGroups }) => {
     }
   }
 
+  const handleMergeClick = () => {
+    if (selectedGroups.size < 2) return
+    setMergeGroupName('')
+    setMergeGroupDescription('')
+    setShowMergeModal(true)
+  }
+
+  const handleMergeGroups = async () => {
+    if (selectedGroups.size < 2 || !mergeGroupName.trim()) return
+
+    setIsMerging(true)
+    try {
+      const response = await fetch(`${API_URL}/api/v1/groups/merge`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          source_group_ids: Array.from(selectedGroups),
+          new_group_name: mergeGroupName.trim(),
+          description: mergeGroupDescription.trim() || null,
+          created_by: user?.id
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`)
+      }
+
+      // Fermer le modal et rafraîchir la liste
+      setShowMergeModal(false)
+      setMergeGroupName('')
+      setMergeGroupDescription('')
+      setSelectedGroups(new Set())
+      await fetchGroups()
+    } catch (error) {
+      console.error('Erreur lors de la fusion des groupes:', error)
+      setError('Erreur lors de la fusion des groupes')
+    } finally {
+      setIsMerging(false)
+    }
+  }
+
   const isAllSelected = filteredGroups.length > 0 && selectedGroups.size === filteredGroups.length
   const isSomeSelected = selectedGroups.size > 0 && selectedGroups.size < filteredGroups.length
 
@@ -262,6 +293,14 @@ const GroupsPage = ({ onOpenGroups }) => {
             >
               Ouvrir {selectedGroups.size > 1 ? `(${selectedGroups.size})` : ''}
             </button>
+            {selectedGroups.size >= 2 && (
+              <button
+                className="merge-groups-btn"
+                onClick={handleMergeClick}
+              >
+                Fusionner ({selectedGroups.size})
+              </button>
+            )}
             <button
               className="delete-selected-btn"
               onClick={handleDeleteSelected}
@@ -375,6 +414,65 @@ const GroupsPage = ({ onOpenGroups }) => {
         cancelText="Annuler"
         isLoading={isDeletingGroup}
       />
+
+      {showMergeModal && (
+        <div className="modal-overlay" onClick={() => setShowMergeModal(false)}>
+          <div className="merge-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Fusionner les groupes</h2>
+              <button
+                className="modal-close-btn"
+                onClick={() => setShowMergeModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="modal-body">
+              <p className="merge-info">
+                Vous allez fusionner {selectedGroups.size} groupes en un seul nouveau groupe.
+                Les membres de tous les groupes sélectionnés seront regroupés.
+              </p>
+              <div className="form-group">
+                <label htmlFor="merge-group-name">Nom du nouveau groupe *</label>
+                <input
+                  type="text"
+                  id="merge-group-name"
+                  value={mergeGroupName}
+                  onChange={(e) => setMergeGroupName(e.target.value)}
+                  placeholder="Entrez le nom du groupe fusionné"
+                  className="form-input"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="merge-group-description">Description</label>
+                <textarea
+                  id="merge-group-description"
+                  value={mergeGroupDescription}
+                  onChange={(e) => setMergeGroupDescription(e.target.value)}
+                  placeholder="Description du groupe (optionnel)"
+                  className="form-textarea"
+                  rows={3}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn-secondary"
+                onClick={() => setShowMergeModal(false)}
+              >
+                Annuler
+              </button>
+              <button
+                className="btn-primary"
+                onClick={handleMergeGroups}
+                disabled={!mergeGroupName.trim() || isMerging}
+              >
+                {isMerging ? 'Fusion en cours...' : 'Valider'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

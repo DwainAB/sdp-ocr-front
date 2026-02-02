@@ -5,7 +5,9 @@ const API_URL = import.meta.env.VITE_API_URL
 
 const EmailTypeModal = ({ isOpen, onClose, formulaReference }) => {
   const [selectedEmailType, setSelectedEmailType] = useState(null)
-  const [showConfirmation, setShowConfirmation] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
+  const [previewData, setPreviewData] = useState(null)
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -15,20 +17,46 @@ const EmailTypeModal = ({ isOpen, onClose, formulaReference }) => {
       id: 'pyramid',
       label: 'Récapitulatif de la formule',
       description: 'Envoie un récapitulatif complet de la formule au client',
-      endpoint: '/api/v1/emails/pyramid'
+      endpoint: '/api/v1/emails/pyramid',
+      previewEndpoint: '/api/v1/emails/pyramid/preview'
     }
     // Ajouter d'autres types d'email ici par la suite
   ]
 
-  const handleEmailTypeSelect = (emailType) => {
+  const handleEmailTypeSelect = async (emailType) => {
     setSelectedEmailType(emailType)
-    setShowConfirmation(true)
+    setShowPreview(true)
+    setIsLoadingPreview(true)
     setError('')
+    setPreviewData(null)
+
+    try {
+      const response = await fetch(`${API_URL}${emailType.previewEndpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference: formulaReference })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Erreur lors du chargement de l\'aperçu')
+      }
+
+      const data = await response.json()
+      setPreviewData(data)
+    } catch (error) {
+      console.error('Erreur preview:', error)
+      setError(error.message)
+    } finally {
+      setIsLoadingPreview(false)
+    }
   }
 
-  const handleCancelConfirmation = () => {
-    setShowConfirmation(false)
+  const handleBackToSelection = () => {
+    setShowPreview(false)
     setSelectedEmailType(null)
+    setPreviewData(null)
+    setError('')
   }
 
   const handleSendEmail = async () => {
@@ -67,7 +95,9 @@ const EmailTypeModal = ({ isOpen, onClose, formulaReference }) => {
 
   const handleClose = () => {
     setSelectedEmailType(null)
-    setShowConfirmation(false)
+    setShowPreview(false)
+    setPreviewData(null)
+    setIsLoadingPreview(false)
     setError('')
     setSuccess(false)
     onClose()
@@ -77,8 +107,8 @@ const EmailTypeModal = ({ isOpen, onClose, formulaReference }) => {
 
   return (
     <div className="modal-overlay" onClick={handleClose}>
-      <div className="email-type-modal-content" onClick={(e) => e.stopPropagation()}>
-        {!showConfirmation ? (
+      <div className={`email-type-modal-content${showPreview ? ' email-type-modal-content--preview' : ''}`} onClick={(e) => e.stopPropagation()}>
+        {!showPreview ? (
           // Écran de sélection du type d'email
           <>
             <div className="modal-header">
@@ -109,11 +139,12 @@ const EmailTypeModal = ({ isOpen, onClose, formulaReference }) => {
             </div>
           </>
         ) : (
-          // Écran de confirmation
+          // Écran de prévisualisation
           <>
             <div className="modal-header">
               <div className="modal-title-section">
-                <h2>Confirmer l'envoi</h2>
+                <h2>Aperçu de l'email</h2>
+                <p className="modal-subtitle">{selectedEmailType?.label}</p>
               </div>
               <button className="modal-close-btn" onClick={handleClose} disabled={isSending}>×</button>
             </div>
@@ -130,29 +161,41 @@ const EmailTypeModal = ({ isOpen, onClose, formulaReference }) => {
                   <span className="success-icon">✓</span>
                   <p>Email envoyé avec succès !</p>
                 </div>
-              ) : (
+              ) : isLoadingPreview ? (
+                <div className="email-preview-loading">
+                  <span className="spinner"></span>
+                  <p>Chargement de l'aperçu...</p>
+                </div>
+              ) : previewData ? (
                 <>
-                  <div className="confirmation-content">
-                    <div className="confirmation-icon">📨</div>
-                    <p className="confirmation-text">
-                      Vous êtes sur le point d'envoyer un email de type :
-                    </p>
-                    <p className="confirmation-email-type">
-                      {selectedEmailType?.label}
-                    </p>
-                    <p className="confirmation-reference">
-                      Référence : <strong>{formulaReference}</strong>
-                    </p>
+                  <div className="email-preview-meta">
+                    <div className="email-preview-meta-row">
+                      <span className="email-preview-meta-label">Destinataire :</span>
+                      <span className="email-preview-meta-value">{previewData.to}</span>
+                    </div>
+                    <div className="email-preview-meta-row">
+                      <span className="email-preview-meta-label">Sujet :</span>
+                      <span className="email-preview-meta-value">{previewData.subject}</span>
+                    </div>
+                  </div>
+
+                  <div className="email-preview-section">
+                    <iframe
+                      srcDoc={previewData.html}
+                      sandbox=""
+                      title="Aperçu de l'email"
+                      className="email-preview-iframe"
+                    />
                   </div>
 
                   <div className="confirmation-actions">
                     <button
                       type="button"
                       className="btn-secondary"
-                      onClick={handleCancelConfirmation}
+                      onClick={handleBackToSelection}
                       disabled={isSending}
                     >
-                      Annuler
+                      Retour
                     </button>
                     <button
                       type="button"
@@ -171,7 +214,7 @@ const EmailTypeModal = ({ isOpen, onClose, formulaReference }) => {
                     </button>
                   </div>
                 </>
-              )}
+              ) : null}
             </div>
           </>
         )}

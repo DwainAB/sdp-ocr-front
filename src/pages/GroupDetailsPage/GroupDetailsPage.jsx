@@ -123,12 +123,6 @@ const GroupDetailsPage = ({ groupIds, onBack }) => {
     setShowRemoveModal(true)
   }
 
-  const handleSendEmail = () => {
-    if (selectedMembers.size === 0) return
-    // Pour l'instant, ne fait rien (à implémenter plus tard)
-    console.log('Envoi d\'email à', selectedMembers.size, 'membres')
-  }
-
   const removeMembersFromGroup = async () => {
     if (!groupIds || groupIds.length === 0 || selectedMembers.size === 0) return
 
@@ -333,12 +327,6 @@ const GroupDetailsPage = ({ groupIds, onBack }) => {
 
         {selectedMembers.size > 0 && (
           <div className="selection-actions">
-            <button
-              className="send-email-btn"
-              onClick={handleSendEmail}
-            >
-              📧 Envoyer email ({selectedMembers.size})
-            </button>
             <button
               className="remove-members-btn"
               onClick={handleRemoveClick}
