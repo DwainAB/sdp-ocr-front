@@ -188,7 +188,6 @@
 
 /* Notes section */
 .formula-notes-section {
-  background: #fefce8;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 24px;
@@ -335,7 +334,7 @@
   padding: 4px 10px;
   background: #eff6ff;
   border-radius: 6px;
-  border: 1px solid #bfdbfe;
+  border: 1px solid #e5e7eb;
 }
 
 .formula-grand-total {
@@ -344,25 +343,24 @@
   align-items: center;
   margin-top: 20px;
   padding: 16px 20px;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
   border-radius: 12px;
-  border: 2px solid #f59e0b;
+  border: 1px solid #e5e7eb;
 }
 
 .grand-total-label {
   font-size: 1rem;
   font-weight: 700;
-  color: #92400e;
+  color: #000;
 }
 
 .grand-total-value {
   font-size: 1.125rem;
   font-weight: 800;
-  color: #78350f;
+  color: #000;
   padding: 6px 14px;
   background: white;
   border-radius: 8px;
-  border: 2px solid #f59e0b;
+  border: 1px solid #e5e7eb;
 }
 
 .formula-warning {
@@ -779,5 +777,88 @@
   .lightbox-download-btn {
     width: 100%;
     justify-content: center;
+  }
+}
+
+/* ============================================
+   SECTION COMMANDES ASSOCIÉES
+   ============================================ */
+
+.formula-orders-section {
+  margin-top: 24px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.formula-orders-section h4 {
+  margin: 0 0 16px 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: #1f2937;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.orders-buttons-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.order-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-left: 3px solid #d1d5db;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.order-btn:hover {
+  background: #fff;
+  border-color: #d1d5db;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.order-btn-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+
+.order-btn-label {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: #1f2937;
+}
+
+.order-btn-date {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
+.order-status-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+@media (max-width: 768px) {
+  .formula-orders-section {
+    padding: 16px;
   }
 }

@@ -387,6 +387,12 @@ export const ordersApi = {
     return handleResponse(response);
   },
 
+  // Récupérer les commandes par formula_id
+  getByFormulaId: async (formulaId) => {
+    const response = await fetch(`${API_URL}/api/v1/orders?formula_id=${formulaId}`);
+    return handleResponse(response);
+  },
+
   // Récupérer une commande par ID
   getById: async (orderId) => {
     const response = await fetch(`${API_URL}/api/v1/orders/${orderId}`);

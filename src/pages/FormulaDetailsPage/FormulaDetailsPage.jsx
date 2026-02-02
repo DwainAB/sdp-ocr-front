@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import { ordersApi } from '../../services/api'
 import EmailTypeModal from '../../components/Modals/EmailTypeModal/EmailTypeModal'
 import ActionsModal from '../../components/Modals/ActionsModal/ActionsModal'
 import DerivedProductsOrderModal from '../../components/Modals/DerivedProductsOrderModal/DerivedProductsOrderModal'
+import OrderDetailModal from '../../components/Modals/OrderDetailModal/OrderDetailModal'
 import './FormulaDetailsPage.css'
 
 const API_URL = import.meta.env.VITE_API_URL
@@ -20,6 +22,17 @@ const FormulaDetailsPage = ({ formulaId, customerId, onBack, onFormulaUpdated })
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [showActionsModal, setShowActionsModal] = useState(false)
   const [showDerivedProductsModal, setShowDerivedProductsModal] = useState(false)
+  const [orders, setOrders] = useState([])
+  const [ordersLoading, setOrdersLoading] = useState(false)
+  const [selectedOrder, setSelectedOrder] = useState(null)
+
+  const statusOptions = [
+    { value: 'PENDING', label: 'En attente', color: '#eab308' },
+    { value: 'CONFIRMED', label: 'Confirmée', color: '#3b82f6' },
+    { value: 'IN_PROGRESS', label: 'En cours', color: '#8b5cf6' },
+    { value: 'COMPLETED', label: 'Terminée', color: '#10b981' },
+    { value: 'CANCELLED', label: 'Annulée', color: '#ef4444' },
+  ]
 
   // Fonction pour parser une quantité en nombre
   const parseQuantity = (quantity) => {
@@ -86,11 +99,41 @@ const FormulaDetailsPage = ({ formulaId, customerId, onBack, onFormulaUpdated })
   useEffect(() => {
     if (formulaId) {
       fetchFormulaDetails(formulaId)
+      fetchOrders(formulaId)
     }
     if (customerId) {
       fetchCustomerDetails(customerId)
     }
   }, [formulaId, customerId])
+
+  const fetchOrders = async (fId) => {
+    if (!fId) return
+    setOrdersLoading(true)
+    try {
+      const data = await ordersApi.getByFormulaId(fId)
+      setOrders(data.orders || [])
+    } catch (error) {
+      console.error('Erreur lors du chargement des commandes:', error)
+    } finally {
+      setOrdersLoading(false)
+    }
+  }
+
+  const getStatusInfo = (status) => {
+    return statusOptions.find(s => s.value === status) || { label: status, color: '#6b7280' }
+  }
+
+  const formatOrderDate = (dateString) => {
+    if (!dateString) return 'Non renseigné'
+    const date = new Date(dateString)
+    return date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
 
   const fetchCustomerDetails = async (id) => {
     try {
@@ -256,7 +299,7 @@ const FormulaDetailsPage = ({ formulaId, customerId, onBack, onFormulaUpdated })
             ← Retour au client
           </button>
           <div className="header-title">
-            <h2>Formule {formula?.id || ''}</h2>
+            <h2>{formula?.reference ? `N° ${formula.reference}` : `Formule ${formula?.id}`}</h2>
             {formula?.date && (
               <span className="formula-date">Date : {formula.date}</span>
             )}
@@ -616,6 +659,44 @@ const FormulaDetailsPage = ({ formulaId, customerId, onBack, onFormulaUpdated })
               </div>
             )}
           </div>
+
+          {/* Section Commandes associées */}
+          <div className="formula-orders-section">
+            <h4>Commandes associées</h4>
+            {ordersLoading ? (
+              <div className="formula-loading-container">
+                <span className="spinner"></span>
+                <p>Chargement des commandes...</p>
+              </div>
+            ) : orders.length > 0 ? (
+              <div className="orders-buttons-list">
+                {orders.map((order) => {
+                  const statusInfo = getStatusInfo(order.status)
+                  return (
+                    <button
+                      key={order.id}
+                      className="order-btn"
+                      onClick={() => setSelectedOrder(order)}
+                      style={{ borderLeftColor: statusInfo.color }}
+                    >
+                      <div className="order-btn-info">
+                        <span className="order-btn-label">Commande #{order.id}</span>
+                        <span className="order-btn-date">{formatOrderDate(order.date)}</span>
+                      </div>
+                      <span
+                        className="order-status-badge"
+                        style={{ backgroundColor: statusInfo.color }}
+                      >
+                        {statusInfo.label}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="no-notes">Aucune commande</p>
+            )}
+          </div>
         </div>
       )}
 
@@ -666,6 +747,13 @@ const FormulaDetailsPage = ({ formulaId, customerId, onBack, onFormulaUpdated })
         onClose={() => setShowDerivedProductsModal(false)}
         formula={formula}
         customer={customer}
+      />
+
+      {/* Modal pour le détail d'une commande */}
+      <OrderDetailModal
+        isOpen={!!selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        order={selectedOrder}
       />
     </div>
   )
