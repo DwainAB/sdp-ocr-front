@@ -16,7 +16,8 @@ const DerivedProductsOrderModal = ({ isOpen, onClose, formula, customer }) => {
     derivedProducts: {},
     comment: '',
     type: '',
-    assignedTo: ''
+    assignedTo: '',
+    desiredDate: ''
   })
   const [users, setUsers] = useState([])
   const [usersLoading, setUsersLoading] = useState(false)
@@ -111,6 +112,7 @@ const DerivedProductsOrderModal = ({ isOpen, onClose, formula, customer }) => {
           allergy: formData.knownAllergies || '',
           type: formData.type || '',
           responsible: formData.assignedTo ? parseInt(formData.assignedTo) : null,
+          desired_date: formData.desiredDate || null,
           items: items
         })
       })
@@ -138,7 +140,8 @@ const DerivedProductsOrderModal = ({ isOpen, onClose, formula, customer }) => {
       derivedProducts: {},
       comment: '',
       type: '',
-      assignedTo: ''
+      assignedTo: '',
+      desiredDate: ''
     })
     setError('')
     setSuccess(false)
@@ -255,6 +258,19 @@ const DerivedProductsOrderModal = ({ isOpen, onClose, formula, customer }) => {
                       </optgroup>
                     ))}
                   </select>
+                </div>
+
+                {/* Date souhaitée */}
+                <div className="form-group">
+                  <label htmlFor="desired-date">Date souhaitée</label>
+                  <input
+                    type="date"
+                    id="desired-date"
+                    value={formData.desiredDate}
+                    onChange={(e) => setFormData(prev => ({ ...prev, desiredDate: e.target.value }))}
+                    className="form-input"
+                    disabled={isSubmitting}
+                  />
                 </div>
 
                 {/* Produits dérivés */}

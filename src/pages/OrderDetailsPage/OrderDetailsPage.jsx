@@ -29,6 +29,7 @@ const OrderDetailsPage = ({ orderId, onBack }) => {
   const [isEditingOrderInfo, setIsEditingOrderInfo] = useState(false)
   const [editType, setEditType] = useState('')
   const [editResponsible, setEditResponsible] = useState('')
+  const [editDesiredDate, setEditDesiredDate] = useState('')
   const [isSavingOrderInfo, setIsSavingOrderInfo] = useState(false)
 
   const typeOptions = [
@@ -82,6 +83,7 @@ const OrderDetailsPage = ({ orderId, onBack }) => {
   const startEditingOrderInfo = () => {
     setEditType(order?.type || '')
     setEditResponsible(order?.responsible ? String(order.responsible) : '')
+    setEditDesiredDate(order?.desired_date || '')
     setIsEditingOrderInfo(true)
   }
 
@@ -89,6 +91,7 @@ const OrderDetailsPage = ({ orderId, onBack }) => {
     setIsEditingOrderInfo(false)
     setEditType('')
     setEditResponsible('')
+    setEditDesiredDate('')
     setError('')
   }
 
@@ -98,7 +101,8 @@ const OrderDetailsPage = ({ orderId, onBack }) => {
     try {
       await ordersApi.update(orderId, {
         type: editType || null,
-        responsible: editResponsible ? parseInt(editResponsible) : null
+        responsible: editResponsible ? parseInt(editResponsible) : null,
+        desired_date: editDesiredDate || null
       })
       await fetchOrderDetails(orderId)
       setIsEditingOrderInfo(false)
@@ -491,6 +495,19 @@ const OrderDetailsPage = ({ orderId, onBack }) => {
               <div className="info-item">
                 <label>Date de création</label>
                 <span>{formatDate(order?.date)}</span>
+              </div>
+              <div className="info-item">
+                <label>Date souhaitée</label>
+                {isEditingOrderInfo ? (
+                  <input
+                    type="date"
+                    className="edit-input"
+                    value={editDesiredDate}
+                    onChange={(e) => setEditDesiredDate(e.target.value)}
+                  />
+                ) : (
+                  <span>{order?.desired_date ? new Date(order.desired_date).toLocaleDateString('fr-FR') : 'Non renseigné'}</span>
+                )}
               </div>
               <div className="info-item">
                 <label>Type</label>

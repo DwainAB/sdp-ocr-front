@@ -213,7 +213,8 @@ const OrdersPage = ({ onOpenOrder }) => {
                 <th>Nom</th>
                 <th>Prénom</th>
                 <th>Type</th>
-                <th>Date</th>
+                <th>Date de création</th>
+                <th>Date souhaitée</th>
                 <th>Statut</th>
               </tr>
             </thead>
@@ -231,6 +232,7 @@ const OrdersPage = ({ onOpenOrder }) => {
                     <td>{order.customer?.first_name || '-'}</td>
                     <td>{order.type || '-'}</td>
                     <td>{formatDate(order.date)}</td>
+                    <td>{formatDate(order.desired_date)}</td>
                     <td>
                       <span
                         className="status-badge"
