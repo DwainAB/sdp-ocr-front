@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ordersApi } from '../../services/api'
 import './OrdersPage.css'
 
 const OrdersPage = ({ onOpenOrder }) => {
   const [orders, setOrders] = useState([])
-  const [filteredOrders, setFilteredOrders] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
-  const [selectedPeriod, setSelectedPeriod] = useState('')
+  const [selectedType, setSelectedType] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalOrders, setTotalOrders] = useState(0)
   const [pageSize] = useState(20)
@@ -21,15 +22,18 @@ const OrdersPage = ({ onOpenOrder }) => {
     { value: 'CANCELLED', label: 'Annulée', color: '#ef4444' },
   ]
 
-  useEffect(() => {
-    fetchOrders()
-  }, [currentPage, selectedStatus])
-
-  const fetchOrders = async (page = currentPage) => {
+  const fetchOrders = useCallback(async (page = currentPage) => {
     setIsLoading(true)
     setError(null)
     try {
-      const data = await ordersApi.getAll(page, pageSize, null, selectedStatus || null)
+      const filters = {
+        status: selectedStatus || undefined,
+        orderType: selectedType || undefined,
+        customerName: searchTerm.trim() || undefined,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+      }
+      const data = await ordersApi.getAll(page, pageSize, filters)
       setOrders(data.orders || [])
       setTotalOrders(data.total || 0)
       setCurrentPage(data.page || page)
@@ -41,52 +45,21 @@ const OrdersPage = ({ onOpenOrder }) => {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [currentPage, pageSize, selectedStatus, selectedType, searchTerm, dateFrom, dateTo])
 
-  // Filtrage côté client pour la recherche et la période
   useEffect(() => {
-    let filtered = orders
+    fetchOrders(1)
+    setCurrentPage(1)
+  }, [selectedStatus, selectedType, dateFrom, dateTo])
 
-    // Filtrage par nom/prénom
-    if (searchTerm.trim()) {
-      const search = searchTerm.toLowerCase().trim()
-      filtered = filtered.filter(order => {
-        const firstName = (order.customer?.first_name || '').toLowerCase()
-        const lastName = (order.customer?.last_name || '').toLowerCase()
-        return firstName.startsWith(search) || lastName.startsWith(search)
-      })
-    }
-
-    // Filtrage par période
-    if (selectedPeriod) {
-      const now = new Date()
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-
-      filtered = filtered.filter(order => {
-        if (!order.date) return false
-        const orderDate = new Date(order.date)
-
-        switch (selectedPeriod) {
-          case 'today':
-            return orderDate >= today
-          case 'week': {
-            const oneWeekAgo = new Date(today)
-            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-            return orderDate >= oneWeekAgo
-          }
-          case 'month': {
-            const oneMonthAgo = new Date(today)
-            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
-            return orderDate >= oneMonthAgo
-          }
-          default:
-            return true
-        }
-      })
-    }
-
-    setFilteredOrders(filtered)
-  }, [orders, searchTerm, selectedPeriod])
+  // Debounce pour la recherche par nom
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCurrentPage(1)
+      fetchOrders(1)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
 
   const formatDate = (dateString) => {
     if (!dateString) return '-'
@@ -105,9 +78,10 @@ const OrdersPage = ({ onOpenOrder }) => {
   const resetFilters = () => {
     setSearchTerm('')
     setSelectedStatus('')
-    setSelectedPeriod('')
+    setSelectedType('')
+    setDateFrom('')
+    setDateTo('')
     setCurrentPage(1)
-    setTimeout(() => fetchOrders(1), 100)
   }
 
   const totalPages = Math.ceil(totalOrders / pageSize)
@@ -131,7 +105,7 @@ const OrdersPage = ({ onOpenOrder }) => {
         <div>
           <h2>Liste des commandes</h2>
           <p>
-            {filteredOrders.length} commande{filteredOrders.length !== 1 ? 's' : ''} sur {totalOrders} total
+            {totalOrders} commande{totalOrders !== 1 ? 's' : ''} au total
           </p>
         </div>
         <div className="header-actions">
@@ -158,34 +132,60 @@ const OrdersPage = ({ onOpenOrder }) => {
           </div>
 
           <div className="dropdown-filters">
-            <select
-              value={selectedStatus}
-              onChange={(e) => {
-                setSelectedStatus(e.target.value)
-                setCurrentPage(1)
-              }}
-              className="filter-select"
-            >
-              <option value="">Tous les statuts</option>
-              {statusOptions.map(status => (
-                <option key={status.value} value={status.value}>{status.label}</option>
-              ))}
-            </select>
+            <div className="date-filter-group">
+              <label className="date-label">Statut</label>
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">Tous les statuts</option>
+                {statusOptions.map(status => (
+                  <option key={status.value} value={status.value}>{status.label}</option>
+                ))}
+              </select>
+            </div>
 
-            <select
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">Toutes les commandes</option>
-              <option value="today">Aujourd'hui</option>
-              <option value="week">Il y a 1 semaine</option>
-              <option value="month">Il y a 1 mois</option>
-            </select>
+            <div className="date-filter-group">
+              <label className="date-label">Type</label>
+              <select
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">Tous les types</option>
+                <option value="standard">Standard</option>
+                <option value="express">Express</option>
+                <option value="sur-mesure">Sur mesure</option>
+              </select>
+            </div>
 
-            <button className="reset-filters-btn" onClick={resetFilters}>
-              Réinitialiser
-            </button>
+            <div className="date-filter-group">
+              <label className="date-label">Date de début</label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="filter-select date-input"
+              />
+            </div>
+
+            <div className="date-filter-group">
+              <label className="date-label">Date de fin</label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="filter-select date-input"
+              />
+            </div>
+
+            <div className="date-filter-group">
+              <label className="date-label">&nbsp;</label>
+              <button className="reset-filters-btn" onClick={resetFilters}>
+                Réinitialiser
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -212,12 +212,13 @@ const OrdersPage = ({ onOpenOrder }) => {
               <tr>
                 <th>Nom</th>
                 <th>Prénom</th>
+                <th>Type</th>
                 <th>Date</th>
                 <th>Statut</th>
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.map((order) => {
+              {orders.map((order) => {
                 const statusInfo = getStatusInfo(order.status)
                 return (
                   <tr
@@ -228,6 +229,7 @@ const OrdersPage = ({ onOpenOrder }) => {
                   >
                     <td>{order.customer?.last_name || '-'}</td>
                     <td>{order.customer?.first_name || '-'}</td>
+                    <td>{order.type || '-'}</td>
                     <td>{formatDate(order.date)}</td>
                     <td>
                       <span
@@ -242,11 +244,6 @@ const OrdersPage = ({ onOpenOrder }) => {
               })}
             </tbody>
           </table>
-          {filteredOrders.length === 0 && orders.length > 0 && (
-            <div className="empty-state">
-              <p>Aucune commande ne correspond aux critères de recherche</p>
-            </div>
-          )}
           {orders.length === 0 && !isLoading && (
             <div className="empty-state">
               <p>Aucune commande trouvée</p>

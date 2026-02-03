@@ -1,17 +1,54 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { usersApi } from '../../../services/api'
 import './DerivedProductsOrderModal.css'
 
 const API_URL = import.meta.env.VITE_API_URL
+
+const typeOptions = [
+  { value: 'standard', label: 'Standard' },
+  { value: 'express', label: 'Express' },
+  { value: 'sur-mesure', label: 'Sur mesure' }
+]
 
 const DerivedProductsOrderModal = ({ isOpen, onClose, formula, customer }) => {
   const [formData, setFormData] = useState({
     knownAllergies: '',
     derivedProducts: {},
-    comment: ''
+    comment: '',
+    type: '',
+    assignedTo: ''
   })
+  const [users, setUsers] = useState([])
+  const [usersLoading, setUsersLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) {
+      const fetchUsers = async () => {
+        setUsersLoading(true)
+        try {
+          const data = await usersApi.getAll()
+          setUsers(data.users || data || [])
+        } catch (err) {
+          console.error('Erreur lors du chargement des utilisateurs:', err)
+        } finally {
+          setUsersLoading(false)
+        }
+      }
+      fetchUsers()
+    }
+  }, [isOpen])
+
+  const usersByTeam = users.reduce((acc, user) => {
+    const team = user.team || 'Autre'
+    if (!acc[team]) acc[team] = []
+    acc[team].push(user)
+    return acc
+  }, {})
+
+  const sortedTeams = Object.keys(usersByTeam).sort()
 
   const derivedProductOptions = [
     { id: 'gel-douche', label: 'Gel douche' },
@@ -72,6 +109,8 @@ const DerivedProductsOrderModal = ({ isOpen, onClose, formula, customer }) => {
           formula_id: formula?.id,
           comment: formData.comment || '',
           allergy: formData.knownAllergies || '',
+          type: formData.type || '',
+          responsible: formData.assignedTo ? parseInt(formData.assignedTo) : null,
           items: items
         })
       })
@@ -97,7 +136,9 @@ const DerivedProductsOrderModal = ({ isOpen, onClose, formula, customer }) => {
     setFormData({
       knownAllergies: '',
       derivedProducts: {},
-      comment: ''
+      comment: '',
+      type: '',
+      assignedTo: ''
     })
     setError('')
     setSuccess(false)
@@ -174,6 +215,46 @@ const DerivedProductsOrderModal = ({ isOpen, onClose, formula, customer }) => {
                     className="form-input"
                     disabled={isSubmitting}
                   />
+                </div>
+
+                {/* Type de commande */}
+                <div className="form-group">
+                  <label htmlFor="order-type">Type de commande</label>
+                  <select
+                    id="order-type"
+                    value={formData.type}
+                    onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
+                    className="form-select"
+                    disabled={isSubmitting}
+                  >
+                    <option value="">-- Sélectionner un type --</option>
+                    {typeOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Assigné à */}
+                <div className="form-group">
+                  <label htmlFor="assigned-to">Assigné à</label>
+                  <select
+                    id="assigned-to"
+                    value={formData.assignedTo}
+                    onChange={(e) => setFormData(prev => ({ ...prev, assignedTo: e.target.value }))}
+                    className="form-select"
+                    disabled={isSubmitting || usersLoading}
+                  >
+                    <option value="">-- Sélectionner un utilisateur --</option>
+                    {sortedTeams.map(team => (
+                      <optgroup key={team} label={team}>
+                        {usersByTeam[team].map(user => (
+                          <option key={user.id} value={user.id}>
+                            {user.first_name} {user.last_name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Produits dérivés */}

@@ -168,6 +168,16 @@ export const customersApi = {
     const response = await fetch(`${API_URL}/api/v1/customers?${params}`);
     return handleResponse(response);
   },
+
+  // Mise à jour en masse des clients
+  bulkUpdate: async (customers) => {
+    const response = await fetch(`${API_URL}/api/v1/customers/bulk`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customers }),
+    });
+    return handleResponse(response);
+  },
 };
 
 // ============================================
@@ -378,11 +388,14 @@ export const exportApi = {
 // ============================================
 
 export const ordersApi = {
-  // Récupérer toutes les commandes avec pagination
-  getAll: async (page = 1, pageSize = 20, search = null, status = null) => {
+  // Récupérer toutes les commandes avec pagination et filtres combinables
+  getAll: async (page = 1, pageSize = 20, { status, customerName, dateFrom, dateTo, orderType } = {}) => {
     let url = `${API_URL}/api/v1/orders/?page=${page}&size=${pageSize}`;
-    if (search) url += `&search=${encodeURIComponent(search)}`;
     if (status) url += `&status=${status}`;
+    if (customerName) url += `&customer_name=${encodeURIComponent(customerName)}`;
+    if (dateFrom) url += `&date_from=${dateFrom}`;
+    if (dateTo) url += `&date_to=${dateTo}`;
+    if (orderType) url += `&order_type=${encodeURIComponent(orderType)}`;
     const response = await fetch(url);
     return handleResponse(response);
   },
@@ -415,6 +428,34 @@ export const ordersApi = {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(orderData),
+    });
+    return handleResponse(response);
+  },
+
+  // Ajouter un article à une commande
+  addItem: async (orderId, itemData) => {
+    const response = await fetch(`${API_URL}/api/v1/orders/${orderId}/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(itemData),
+    });
+    return handleResponse(response);
+  },
+
+  // Mettre à jour un article d'une commande
+  updateItem: async (orderId, itemId, itemData) => {
+    const response = await fetch(`${API_URL}/api/v1/orders/${orderId}/items/${itemId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(itemData),
+    });
+    return handleResponse(response);
+  },
+
+  // Supprimer un article d'une commande
+  deleteItem: async (orderId, itemId) => {
+    const response = await fetch(`${API_URL}/api/v1/orders/${orderId}/items/${itemId}`, {
+      method: 'DELETE',
     });
     return handleResponse(response);
   },

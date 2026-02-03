@@ -31,6 +31,11 @@ const ClientsPage = ({ onOpenCustomer }) => {
   const [showAddToGroupModal, setShowAddToGroupModal] = useState(false)
   const [showReviewsView, setShowReviewsView] = useState(false)
   const [pendingReviewsCount, setPendingReviewsCount] = useState(0)
+  const [bulkColumn, setBulkColumn] = useState('')
+  const [bulkSearchValue, setBulkSearchValue] = useState('')
+  const [bulkNewValue, setBulkNewValue] = useState('')
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false)
+  const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false)
 
   useEffect(() => {
     if (clients.length === 0) {
@@ -102,6 +107,14 @@ const ClientsPage = ({ onOpenCustomer }) => {
       return matchesCountry && matchesYear && matchesEmailVerification && matchesMonth
     })
 
+    // Filtre de modification en masse
+    if (bulkColumn && bulkSearchValue) {
+      filtered = filtered.filter(client => {
+        const value = client[bulkColumn]
+        return value && String(value).toLowerCase() === bulkSearchValue.toLowerCase()
+      })
+    }
+
     setFilteredClients(filtered)
 
     // Calculer le nombre total de clients filtrés (estimation basée sur la proportion de la page actuelle)
@@ -111,7 +124,7 @@ const ClientsPage = ({ onOpenCustomer }) => {
     } else {
       setTotalFilteredClients(0)
     }
-  }, [clients, selectedCountry, selectedYear, selectedMonth, emailVerificationFilter, totalClients])
+  }, [clients, selectedCountry, selectedYear, selectedMonth, emailVerificationFilter, totalClients, bulkColumn, bulkSearchValue])
 
   // Effet pour recharger les clients lors du changement de recherche
   useEffect(() => {
@@ -182,9 +195,71 @@ const ClientsPage = ({ onOpenCustomer }) => {
     setSelectedYear('')
     setSelectedMonth('')
     setEmailVerificationFilter('')
+    setBulkColumn('')
+    setBulkSearchValue('')
+    setBulkNewValue('')
     setCurrentPage(1)
     // Recharger la première page sans filtres
     setTimeout(() => fetchClients(1), 100)
+  }
+
+  // Colonnes disponibles pour la modification en masse
+  const bulkEditColumns = [
+    { value: 'postal_code', label: 'Code postal' },
+    { value: 'city', label: 'Ville' },
+    { value: 'country', label: 'Pays' },
+    { value: 'group', label: 'Groupe' },
+  ]
+
+  const handleBulkUpdate = () => {
+    if (!bulkColumn || !bulkSearchValue || !bulkNewValue) return
+    setShowBulkConfirmModal(true)
+  }
+
+  const confirmBulkUpdate = async () => {
+    setIsBulkUpdating(true)
+    setShowBulkConfirmModal(false)
+    try {
+      // Récupérer tous les clients sans pagination pour trouver tous ceux qui correspondent
+      const params = new URLSearchParams({ size: totalClients.toString() })
+      if (searchTerm.trim()) {
+        params.append('search', searchTerm.trim())
+      }
+      const response = await fetch(`${API_URL}/api/v1/customers?${params}`)
+      if (!response.ok) throw new Error(`Erreur HTTP: ${response.status}`)
+      const data = await response.json()
+      const allClients = data.customers || []
+
+      // Filtrer ceux qui correspondent à la valeur recherchée sur la colonne choisie
+      const matchingClients = allClients.filter(client => {
+        const value = client[bulkColumn]
+        return value && String(value).toLowerCase() === bulkSearchValue.toLowerCase()
+      })
+
+      if (matchingClients.length === 0) {
+        setError('Aucun client correspondant trouvé')
+        return
+      }
+
+      // Construire le payload : chaque client avec son id + le champ à modifier
+      const customers = matchingClients.map(client => ({
+        id: client.id,
+        [bulkColumn]: bulkNewValue
+      }))
+
+      await customersApi.bulkUpdate(customers)
+
+      // Rafraîchir la liste
+      await fetchClients(currentPage)
+      // Réinitialiser les champs de recherche
+      setBulkSearchValue('')
+      setBulkNewValue('')
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour en masse:', error)
+      setError('Erreur lors de la mise à jour en masse')
+    } finally {
+      setIsBulkUpdating(false)
+    }
   }
 
   // Fonctions de pagination
@@ -521,6 +596,55 @@ const ClientsPage = ({ onOpenCustomer }) => {
             </button>
           </div>
         </div>
+
+        {/* Modification en masse */}
+        {user?.role?.customers_edit && (
+          <div className="bulk-edit-row">
+            <span className="bulk-edit-label">Modifier en masse</span>
+            <select
+              value={bulkColumn}
+              onChange={(e) => {
+                setBulkColumn(e.target.value)
+                setBulkSearchValue('')
+                setBulkNewValue('')
+              }}
+              className="filter-select bulk-edit-select"
+            >
+              <option value="">Colonne...</option>
+              {bulkEditColumns.map(col => (
+                <option key={col.value} value={col.value}>{col.label}</option>
+              ))}
+            </select>
+            <input
+              type="text"
+              placeholder="Valeur recherchée..."
+              value={bulkSearchValue}
+              onChange={(e) => setBulkSearchValue(e.target.value)}
+              className="search-input bulk-edit-input"
+              disabled={!bulkColumn}
+            />
+            <input
+              type="text"
+              placeholder="Nouvelle valeur..."
+              value={bulkNewValue}
+              onChange={(e) => setBulkNewValue(e.target.value)}
+              className="search-input bulk-edit-input"
+              disabled={!bulkColumn || !bulkSearchValue}
+            />
+            <button
+              className="bulk-edit-apply-btn"
+              onClick={handleBulkUpdate}
+              disabled={!bulkColumn || !bulkSearchValue || !bulkNewValue || isBulkUpdating}
+            >
+              {isBulkUpdating ? 'Mise à jour...' : 'Appliquer'}
+            </button>
+            {bulkColumn && bulkSearchValue && (
+              <span className="bulk-edit-count">
+                {filteredClients.length} client{filteredClients.length !== 1 ? 's' : ''} trouvé{filteredClients.length !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {error && (
@@ -554,7 +678,6 @@ const ClientsPage = ({ onOpenCustomer }) => {
                     title={isAllSelected ? "Tout désélectionner" : "Tout sélectionner"}
                   />
                 </th>
-                <th>Référence</th>
                 <th>Nom</th>
                 <th>Prénom</th>
                 <th>Email</th>
@@ -579,7 +702,6 @@ const ClientsPage = ({ onOpenCustomer }) => {
                       onChange={() => handleClientSelect(client.id)}
                     />
                   </td>
-                  <td>{client.reference}</td>
                   <td>{client.first_name}</td>
                   <td>{client.last_name}</td>
                   <td>
@@ -683,6 +805,16 @@ const ClientsPage = ({ onOpenCustomer }) => {
         onClose={() => setShowAddToGroupModal(false)}
         onClientsAdded={handleClientsAddedToGroup}
         selectedClients={selectedClients}
+      />
+
+      <ConfirmationModal
+        isOpen={showBulkConfirmModal}
+        onClose={() => setShowBulkConfirmModal(false)}
+        onConfirm={confirmBulkUpdate}
+        title="Confirmer la modification en masse"
+        message={`Voulez-vous modifier la colonne "${bulkEditColumns.find(c => c.value === bulkColumn)?.label || bulkColumn}" de "${bulkSearchValue}" vers "${bulkNewValue}" pour tous les clients correspondants dans la base de données ?`}
+        confirmText="Appliquer la modification"
+        isLoading={isBulkUpdating}
       />
     </div>
   )

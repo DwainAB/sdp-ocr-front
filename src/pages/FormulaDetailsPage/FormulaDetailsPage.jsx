@@ -9,6 +9,34 @@ import './FormulaDetailsPage.css'
 
 const API_URL = import.meta.env.VITE_API_URL
 
+const TOP_NOTES_OPTIONS = [
+  'Bambou', 'Bergamote', 'Bergamote verte', 'Cardamome ginger', 'Citron amère', 'Citron doux',
+  "Fleur d'oranger", 'Florale fraîche', 'Freesia', 'Fruit de cassis', 'Géranium sauvage',
+  'Gingembre', 'Grenadier', 'Lavande sauvage', 'Lotus', 'Mandarine portofino', 'Note verte',
+  'Oeillet fleuri', 'Orange', 'Orange amère', 'Ozone', 'Pamplemousse', 'Poivre sichuan',
+  'Pomme', 'Rose de mai', 'Spice bang', 'Thé vert'
+]
+
+const HEART_NOTES_OPTIONS = [
+  'Cocktail', 'Concombre', 'Figue', 'Fleur de jacinthe', 'Fleur de pêche', 'Fleur de tiaré',
+  'Geranium', 'Glycine', 'Hedione', 'Jasmin musqué', 'Jasmin oriental', 'Jonquille', 'Lylibell',
+  'Mangue', 'Marine', 'Muguet musqué', 'Mure', 'Note cannelle', 'Note safran', 'Oeillet cuir',
+  'Oeillet fruité', 'Pivoine', 'Rhubarbe', 'Romarin', "Rose d'orient", 'Rose fruitée cerise',
+  'Tabac blond', 'Tabac gris', 'Tilleul', 'Violette', 'Ylang coton'
+]
+
+const BASE_NOTES_OPTIONS = [
+  'Accord musc', 'Amande', 'Ambre', 'Ambre oriental', 'Ambre vert', 'Ambreine', 'Bois ambré',
+  'Bois booster', 'Bois de cachemire', 'Bois épicé', 'Boisé ambre', 'Boisé cèdre', 'Bouquet fleuri',
+  'Cèdre', 'Chocolat au lait', 'Coco des îles', 'Cuir', 'Fève tonka', 'Fleur de jasmin',
+  'Frangipane', 'Iris', 'Lilas', 'Mousse', 'Musc blanc', 'Musc floral', 'Myrrhe encens',
+  'Note praline', 'Opoponax', "Oud d'or", 'Patchouli', "Poudre d'iris", 'Santal',
+  "Santal d'Inde", "Santal d'orient", 'Santal exotique', 'Santaline', 'Tonka', 'Tubereuse',
+  'Vanille', 'Vetiver', 'Virginia'
+]
+
+const ALL_NOTES_OPTIONS = [...TOP_NOTES_OPTIONS, ...HEART_NOTES_OPTIONS, ...BASE_NOTES_OPTIONS]
+
 const FormulaDetailsPage = ({ formulaId, customerId, onBack, onFormulaUpdated }) => {
   const { user } = useAuth()
   const [formula, setFormula] = useState(null)
@@ -502,13 +530,31 @@ const FormulaDetailsPage = ({ formulaId, customerId, onBack, onFormulaUpdated })
                   <div className="notes-edit-list">
                     {editingData?.top_notes?.map((note, idx) => (
                       <div key={idx} className="note-edit-item">
-                        <input
-                          type="text"
+                        <select
                           value={note.name}
                           onChange={(e) => handleNoteChange('top_notes', idx, 'name', e.target.value)}
-                          placeholder="Nom"
                           className="note-input note-name-input"
-                        />
+                        >
+                          <option value="">-- Choisir --</option>
+                          {note.name && !ALL_NOTES_OPTIONS.includes(note.name) && (
+                            <option value={note.name}>{note.name}</option>
+                          )}
+                          <optgroup label="Notes de Tête">
+                            {TOP_NOTES_OPTIONS.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Notes de Cœur">
+                            {HEART_NOTES_OPTIONS.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Notes de Fond">
+                            {BASE_NOTES_OPTIONS.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </optgroup>
+                        </select>
                         <input
                           type="text"
                           value={note.quantity}
@@ -541,13 +587,31 @@ const FormulaDetailsPage = ({ formulaId, customerId, onBack, onFormulaUpdated })
                   <div className="notes-edit-list">
                     {editingData?.heart_notes?.map((note, idx) => (
                       <div key={idx} className="note-edit-item">
-                        <input
-                          type="text"
+                        <select
                           value={note.name}
                           onChange={(e) => handleNoteChange('heart_notes', idx, 'name', e.target.value)}
-                          placeholder="Nom"
                           className="note-input note-name-input"
-                        />
+                        >
+                          <option value="">-- Choisir --</option>
+                          {note.name && !ALL_NOTES_OPTIONS.includes(note.name) && (
+                            <option value={note.name}>{note.name}</option>
+                          )}
+                          <optgroup label="Notes de Tête">
+                            {TOP_NOTES_OPTIONS.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Notes de Cœur">
+                            {HEART_NOTES_OPTIONS.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Notes de Fond">
+                            {BASE_NOTES_OPTIONS.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </optgroup>
+                        </select>
                         <input
                           type="text"
                           value={note.quantity}
@@ -580,13 +644,31 @@ const FormulaDetailsPage = ({ formulaId, customerId, onBack, onFormulaUpdated })
                   <div className="notes-edit-list">
                     {editingData?.base_notes?.map((note, idx) => (
                       <div key={idx} className="note-edit-item">
-                        <input
-                          type="text"
+                        <select
                           value={note.name}
                           onChange={(e) => handleNoteChange('base_notes', idx, 'name', e.target.value)}
-                          placeholder="Nom"
                           className="note-input note-name-input"
-                        />
+                        >
+                          <option value="">-- Choisir --</option>
+                          {note.name && !ALL_NOTES_OPTIONS.includes(note.name) && (
+                            <option value={note.name}>{note.name}</option>
+                          )}
+                          <optgroup label="Notes de Tête">
+                            {TOP_NOTES_OPTIONS.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Notes de Cœur">
+                            {HEART_NOTES_OPTIONS.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Notes de Fond">
+                            {BASE_NOTES_OPTIONS.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </optgroup>
+                        </select>
                         <input
                           type="text"
                           value={note.quantity}

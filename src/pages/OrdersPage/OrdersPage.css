@@ -159,6 +159,18 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
+.date-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.date-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
 .date-input {
   min-width: 180px;
 }
