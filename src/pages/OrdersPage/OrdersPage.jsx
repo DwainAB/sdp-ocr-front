@@ -29,7 +29,7 @@ const OrdersPage = ({ onOpenOrder }) => {
       const filters = {
         status: selectedStatus || undefined,
         orderType: selectedType || undefined,
-        customerName: searchTerm.trim() || undefined,
+        search: searchTerm.trim() || undefined,
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
       }
@@ -124,7 +124,7 @@ const OrdersPage = ({ onOpenOrder }) => {
           <div className="search-filter">
             <input
               type="text"
-              placeholder="Rechercher par nom, prénom..."
+              placeholder="Rechercher par nom, prénom, référence..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"
@@ -210,6 +210,7 @@ const OrdersPage = ({ onOpenOrder }) => {
           <table className="orders-table">
             <thead>
               <tr>
+                <th>Référence</th>
                 <th>Nom</th>
                 <th>Prénom</th>
                 <th>Type</th>
@@ -228,6 +229,7 @@ const OrdersPage = ({ onOpenOrder }) => {
                     onClick={() => handleRowClick(order)}
                     style={{ cursor: 'pointer' }}
                   >
+                    <td>{order.reference || '-'}</td>
                     <td>{order.customer?.last_name || '-'}</td>
                     <td>{order.customer?.first_name || '-'}</td>
                     <td>{order.type || '-'}</td>

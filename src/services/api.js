@@ -389,10 +389,11 @@ export const exportApi = {
 
 export const ordersApi = {
   // Récupérer toutes les commandes avec pagination et filtres combinables
-  getAll: async (page = 1, pageSize = 20, { status, customerName, dateFrom, dateTo, orderType } = {}) => {
+  getAll: async (page = 1, pageSize = 20, { status, customerName, dateFrom, dateTo, orderType, search } = {}) => {
     let url = `${API_URL}/api/v1/orders/?page=${page}&size=${pageSize}`;
     if (status) url += `&status=${status}`;
     if (customerName) url += `&customer_name=${encodeURIComponent(customerName)}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
     if (dateFrom) url += `&date_from=${dateFrom}`;
     if (dateTo) url += `&date_to=${dateTo}`;
     if (orderType) url += `&order_type=${encodeURIComponent(orderType)}`;

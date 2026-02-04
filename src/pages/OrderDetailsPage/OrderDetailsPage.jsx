@@ -490,7 +490,7 @@ const OrderDetailsPage = ({ orderId, onBack }) => {
             <div className="info-grid">
               <div className="info-item">
                 <label>Référence</label>
-                <span>#{order?.id}</span>
+                <span>{order?.reference || 'Non renseigné'}</span>
               </div>
               <div className="info-item">
                 <label>Date de création</label>
