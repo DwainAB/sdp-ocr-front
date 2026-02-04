@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { usersApi } from '../../../services/api'
+import { useState, useEffect } from 'react'
+import { usersApi, rolesApi } from '../../../services/api'
 import './AddUserModal.css'
 
 const AddUserModal = ({ isOpen, onClose, onUserAdded }) => {
@@ -9,11 +9,31 @@ const AddUserModal = ({ isOpen, onClose, onUserAdded }) => {
     email: '',
     phone: '',
     job: '',
-    role: 'user',
+    role: '',
     team: ''
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [roles, setRoles] = useState([])
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchRoles()
+    }
+  }, [isOpen])
+
+  const fetchRoles = async () => {
+    try {
+      const data = await rolesApi.getAll()
+      const rolesList = data.roles || data || []
+      setRoles(rolesList)
+      if (rolesList.length > 0 && !formData.role) {
+        setFormData(prev => ({ ...prev, role: rolesList[0].name }))
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des rôles:', error)
+    }
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -39,7 +59,7 @@ const AddUserModal = ({ isOpen, onClose, onUserAdded }) => {
         email: '',
         phone: '',
         job: '',
-        role: 'user',
+        role: '',
         team: ''
       })
 
@@ -165,9 +185,10 @@ const AddUserModal = ({ isOpen, onClose, onUserAdded }) => {
                 onChange={handleChange}
                 disabled={isLoading}
               >
-                <option value="user">Utilisateur</option>
-                <option value="admin">Administrateur</option>
-                <option value="manager">Manager</option>
+                <option value="">Sélectionner un rôle</option>
+                {roles.map(role => (
+                  <option key={role.id} value={role.name}>{role.name}</option>
+                ))}
               </select>
             </div>
           </div>

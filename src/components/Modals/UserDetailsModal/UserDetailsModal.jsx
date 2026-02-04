@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../../contexts/AuthContext'
-import { usersApi } from '../../../services/api'
+import { usersApi, rolesApi } from '../../../services/api'
 import './UserDetailsModal.css'
 
 const UserDetailsModal = ({ isOpen, onClose, onUserUpdated, user, onViewLogs }) => {
@@ -10,13 +10,30 @@ const UserDetailsModal = ({ isOpen, onClose, onUserUpdated, user, onViewLogs }) 
     last_name: '',
     email: '',
     phone: '',
-    role: '',
+    role_id: '',
     team: '',
     job: ''
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [isEditing, setIsEditing] = useState(false)
+  const [roles, setRoles] = useState([])
+  const [userRoleName, setUserRoleName] = useState('')
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchRoles()
+    }
+  }, [isOpen])
+
+  const fetchRoles = async () => {
+    try {
+      const data = await rolesApi.getAll()
+      setRoles(data.roles || data || [])
+    } catch (error) {
+      console.error('Erreur lors du chargement des rôles:', error)
+    }
+  }
 
   useEffect(() => {
     if (user && isOpen) {
@@ -25,12 +42,21 @@ const UserDetailsModal = ({ isOpen, onClose, onUserUpdated, user, onViewLogs }) 
         last_name: user.last_name || '',
         email: user.email || '',
         phone: user.phone || '',
-        role: user.role || '',
+        role_id: user.role_id || '',
         team: user.team || '',
         job: user.job || ''
       })
       setIsEditing(false)
       setError('')
+
+      // Récupérer le nom du rôle via l'ID
+      if (user.role_id) {
+        rolesApi.getById(user.role_id)
+          .then(role => setUserRoleName(role.name || ''))
+          .catch(() => setUserRoleName(''))
+      } else {
+        setUserRoleName('')
+      }
     }
   }, [user, isOpen])
 
@@ -56,7 +82,7 @@ const UserDetailsModal = ({ isOpen, onClose, onUserUpdated, user, onViewLogs }) 
         last_name: user.last_name || '',
         email: user.email || '',
         phone: user.phone || '',
-        role: user.role || '',
+        role_id: user.role_id || '',
         team: user.team || '',
         job: user.job || ''
       }
@@ -64,7 +90,8 @@ const UserDetailsModal = ({ isOpen, onClose, onUserUpdated, user, onViewLogs }) 
       const changedFields = {}
       Object.keys(formData).forEach(key => {
         if (formData[key] !== originalData[key]) {
-          changedFields[key] = formData[key]
+          // Convertir role_id en nombre pour l'API
+          changedFields[key] = key === 'role_id' ? Number(formData[key]) : formData[key]
         }
       })
 
@@ -104,7 +131,7 @@ const UserDetailsModal = ({ isOpen, onClose, onUserUpdated, user, onViewLogs }) 
       last_name: user?.last_name || '',
       email: user?.email || '',
       phone: user?.phone || '',
-      role: user?.role || '',
+      role_id: user?.role_id || '',
       team: user?.team || '',
       job: user?.job || ''
     })
@@ -177,7 +204,7 @@ const UserDetailsModal = ({ isOpen, onClose, onUserUpdated, user, onViewLogs }) 
                 <div className="info-grid">
                   <div className="info-item">
                     <label>Rôle</label>
-                    <span>{user?.role || 'Non renseigné'}</span>
+                    <span>{userRoleName || 'Non renseigné'}</span>
                   </div>
                   <div className="info-item">
                     <label>Équipe</label>
@@ -262,16 +289,19 @@ const UserDetailsModal = ({ isOpen, onClose, onUserUpdated, user, onViewLogs }) 
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="role">Rôle</label>
-                  <input
-                    type="text"
-                    id="role"
-                    name="role"
-                    value={formData.role}
+                  <label htmlFor="role_id">Rôle</label>
+                  <select
+                    id="role_id"
+                    name="role_id"
+                    value={formData.role_id}
                     onChange={handleChange}
                     disabled={isLoading}
-                    placeholder="Ex: Administrateur"
-                  />
+                  >
+                    <option value="">Sélectionner un rôle</option>
+                    {roles.map(role => (
+                      <option key={role.id} value={role.id}>{role.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

@@ -337,10 +337,6 @@ const CustomerDetailsPage = ({ customerId, onBack, onCustomerUpdated, onOpenForm
                   <span>{customer?.job || 'Non renseigné'}</span>
                 </div>
                 <div className="info-item">
-                  <label>Référence</label>
-                  <span>{customer?.reference || 'Non renseigné'}</span>
-                </div>
-                <div className="info-item">
                   <label>Créée</label>
                   <span>{formatDateDisplay(customer?.created_at)}</span>
                 </div>
@@ -486,20 +482,7 @@ const CustomerDetailsPage = ({ customerId, onBack, onCustomerUpdated, onOpenForm
                 />
               </div>
             </div>
-
-            <div className="form-group">
-              <label htmlFor="reference">Référence</label>
-              <input
-                type="text"
-                id="reference"
-                name="reference"
-                value={formData.reference}
-                onChange={handleChange}
-                disabled={isSaving}
-                placeholder="Ex: REF-2024-001"
-              />
-            </div>
-
+            
             <div className="form-actions">
               <button
                 type="button"

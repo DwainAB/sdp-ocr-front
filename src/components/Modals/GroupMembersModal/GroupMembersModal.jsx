@@ -181,7 +181,6 @@ const GroupMembersModal = ({ isOpen, onClose, group }) => {
 
       const exportData = {
         data: selectedMembersData.map(member => ({
-          reference: member.reference || '',
           first_name: member.first_name || '',
           last_name: member.last_name || '',
           email: member.email || '',
@@ -335,7 +334,6 @@ const GroupMembersModal = ({ isOpen, onClose, group }) => {
                             title={isAllSelected ? "Tout désélectionner" : "Tout sélectionner"}
                           />
                         </th>
-                        <th>Référence</th>
                         <th>Nom</th>
                         <th>Prénom</th>
                         <th>Email</th>
@@ -353,7 +351,6 @@ const GroupMembersModal = ({ isOpen, onClose, group }) => {
                               onChange={() => handleMemberSelect(member.id)}
                             />
                           </td>
-                          <td>{member.reference}</td>
                           <td>{member.last_name}</td>
                           <td>{member.first_name}</td>
                           <td>{member.email}</td>

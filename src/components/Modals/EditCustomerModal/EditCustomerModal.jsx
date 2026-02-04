@@ -231,19 +231,6 @@ const EditCustomerModal = ({ isOpen, onClose, onCustomerUpdated, customer }) => 
             </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="reference">Référence</label>
-            <input
-              type="text"
-              id="reference"
-              name="reference"
-              value={formData.reference}
-              onChange={handleChange}
-              disabled={isLoading}
-              placeholder="Ex: REF-2024-001"
-            />
-          </div>
-
           <div className="form-actions">
             <button
               type="button"

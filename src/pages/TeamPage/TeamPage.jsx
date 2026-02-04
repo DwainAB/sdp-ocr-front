@@ -5,7 +5,7 @@ import AddUserModal from '../../components/Modals/AddUserModal/AddUserModal'
 import UserLoginHistoryModal from '../../components/Modals/UserLoginHistoryModal/UserLoginHistoryModal'
 import UserDetailsModal from '../../components/Modals/UserDetailsModal/UserDetailsModal'
 import RolesManagementModal from '../../components/Modals/RolesManagementModal/RolesManagementModal'
-import { usersApi } from '../../services/api'
+import { usersApi, rolesApi } from '../../services/api'
 import './TeamPage.css'
 
 const TeamPage = () => {
@@ -24,9 +24,25 @@ const TeamPage = () => {
   const [showUserDetailsModal, setShowUserDetailsModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState(null)
   const [showRolesModal, setShowRolesModal] = useState(false)
+  const [rolesMap, setRolesMap] = useState({})
+
+  const fetchRoles = async () => {
+    try {
+      const data = await rolesApi.getAll()
+      const rolesList = data.roles || data || []
+      const map = {}
+      rolesList.forEach(role => { map[role.id] = role.name })
+      setRolesMap(map)
+    } catch (error) {
+      console.error('Erreur lors du chargement des rôles:', error)
+    }
+  }
+
+  const getRoleName = (roleId) => rolesMap[roleId] || ''
 
   useEffect(() => {
     fetchTeamMembers()
+    fetchRoles()
   }, [])
 
   const fetchTeamMembers = async () => {
@@ -57,17 +73,18 @@ const TeamPage = () => {
 
 
   const filteredMembers = teamMembers.filter(member => {
+    const roleName = getRoleName(member.role_id)
     const matchesSearch = searchTerm === '' ||
       member.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.role?.toLowerCase().includes(searchTerm.toLowerCase())
+      roleName?.toLowerCase().includes(searchTerm.toLowerCase())
 
     return matchesSearch
   })
 
   const getUniqueRoles = () => {
-    const roles = teamMembers.map(member => member.role).filter(Boolean)
+    const roles = teamMembers.map(member => getRoleName(member.role_id)).filter(Boolean)
     return [...new Set(roles)].sort()
   }
 
@@ -261,7 +278,7 @@ const TeamPage = () => {
                          title={member.is_online ? 'En ligne' : 'Hors ligne'}>
                     </div>
                   </div>
-                  <p className="member-role">{member.role}</p>
+                  <p className="member-role">{getRoleName(member.role_id)}</p>
                   <span className={`status-badge ${getStatusColor(member.job)}`}>
                     {member.job}
                   </span>
@@ -340,7 +357,7 @@ const TeamPage = () => {
       <RolesManagementModal
         isOpen={showRolesModal}
         onClose={() => setShowRolesModal(false)}
-        onRolesUpdated={fetchTeamMembers}
+        onRolesUpdated={() => { fetchTeamMembers(); fetchRoles() }}
       />
     </div>
   )

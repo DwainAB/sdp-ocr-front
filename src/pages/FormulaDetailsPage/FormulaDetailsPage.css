@@ -188,6 +188,7 @@
 
 /* Notes section */
 .formula-notes-section {
+  background-color: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 24px;
@@ -338,6 +339,7 @@
 }
 
 .formula-grand-total {
+  background-color: #fff;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -361,6 +363,7 @@
   background: white;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
+  color: #3b82f6;
 }
 
 .formula-warning {

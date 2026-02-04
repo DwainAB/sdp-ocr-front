@@ -482,7 +482,6 @@ const CustomerReviewsPage = ({ onClose }) => {
                     <th>Téléphone</th>
                     <th>Ville</th>
                     <th>Pays</th>
-                    <th>Référence</th>
                     <th>Métier</th>
                     <th>Actions</th>
                   </tr>
@@ -683,10 +682,6 @@ const CustomerReviewsPage = ({ onClose }) => {
                             <span>{editingCustomer?.job || 'Non renseigné'}</span>
                           </div>
                           <div className="info-item">
-                            <label>Référence</label>
-                            <span>{editingCustomer?.reference || 'Non renseigné'}</span>
-                          </div>
-                          <div className="info-item">
                             <label>Date</label>
                             <span>{formatDateDisplay(editingCustomer?.date)}</span>
                           </div>
@@ -756,15 +751,6 @@ const CustomerReviewsPage = ({ onClose }) => {
                               value={editForm.job}
                               onChange={(e) => handleFormChange('job', e.target.value)}
                               placeholder="Métier"
-                            />
-                          </div>
-                          <div className="form-group">
-                            <label>Référence</label>
-                            <input
-                              type="text"
-                              value={editForm.reference}
-                              onChange={(e) => handleFormChange('reference', e.target.value)}
-                              placeholder="Référence"
                             />
                           </div>
                           <div className="form-group">
